@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>映巢 · 影视</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a class="logo" href="index.html">映<span>巢</span></a>
+      <nav class="nav-links">
+        <a href="index.html" class="active">首页</a>
+        <a href="pages/movie.html">电影</a>
+        <a href="pages/tv.html">剧集</a>
+        <a href="pages/anime.html">动漫</a>
+        <a href="pages/variety.html">综艺</a>
+      </nav>
+      <div class="nav-right">
+        <button class="search-btn" onclick="toggleSearch()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <div id="userArea"></div>
+      </div>
+    </div>
+    <!-- 搜索栏 -->
+    <div class="search-bar" id="searchBar">
+      <input type="text" id="searchInput" placeholder="搜索电影、剧集、动漫…" onkeydown="if(event.key==='Enter')doSearch()" />
+      <button onclick="doSearch()">搜索</button>
+      <button class="close-search" onclick="toggleSearch()">✕</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Banner -->
+    <section class="hero" id="heroBanner">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <div class="hero-badge">今日推荐</div>
+        <h1 class="hero-title" id="heroTitle">正在加载…</h1>
+        <p class="hero-desc" id="heroDesc"></p>
+        <div class="hero-btns">
+          <button class="btn-play" id="heroPlayBtn">▶ 立即播放</button>
+          <button class="btn-info" id="heroInfoBtn">详情</button>
+        </div>
+      </div>
+      <div class="hero-poster" id="heroPoster"></div>
+    </section>
+
+    <!-- 分类内容区 -->
+    <div class="content-wrap">
+
+      <section class="row-section">
+        <div class="row-head">
+          <h2>🎬 最新电影</h2>
+          <a href="pages/movie.html">更多 →</a>
+        </div>
+        <div class="card-row" id="movieRow"></div>
+      </section>
+
+      <section class="row-section">
+        <div class="row-head">
+          <h2>📺 热门剧集</h2>
+          <a href="pages/tv.html">更多 →</a>
+        </div>
+        <div class="card-row" id="tvRow"></div>
+      </section>
+
+      <section class="row-section">
+        <div class="row-head">
+          <h2>✨ 动漫推荐</h2>
+          <a href="pages/anime.html">更多 →</a>
+        </div>
+        <div class="card-row" id="animeRow"></div>
+      </section>
+
+      <section class="row-section">
+        <div class="row-head">
+          <h2>🎉 综艺节目</h2>
+          <a href="pages/variety.html">更多 →</a>
+        </div>
+        <div class="card-row" id="varietyRow"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 登录弹窗 -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h2>登录 / 注册</h2>
+      <p class="modal-sub">登录后可保存观看历史、收藏和偏好设置</p>
+      <input type="text" id="inputUsername" placeholder="用户名（随意填写）" maxlength="16" />
+      <input type="password" id="inputPassword" placeholder="密码（本地存储，无需真实）" maxlength="32" />
+      <div class="modal-btns">
+        <button onclick="doLogin()">登录</button>
+        <button class="btn-reg" onclick="doRegister()">注册</button>
+      </div>
+      <p class="modal-tip">⚠️ 数据仅保存在本设备，换设备需重新注册</p>
+    </div>
+  </div>
+
+  <!-- 用户设置弹窗 -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal settings-modal">
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+      <h2>个人设置</h2>
+      <div class="settings-avatar" id="settingsAvatar"></div>
+      <div class="setting-item">
+        <label>显示名称</label>
+        <input type="text" id="setNickname" placeholder="昵称" maxlength="12" />
+      </div>
+      <div class="setting-item">
+        <label>主题颜色</label>
+        <div class="color-picker">
+          <span class="color-dot" style="background:#e05c3a" data-color="#e05c3a" onclick="pickColor(this)"></span>
+          <span class="color-dot" style="background:#3a7de0" data-color="#3a7de0" onclick="pickColor(this)"></span>
+          <span class="color-dot" style="background:#3ac97d" data-color="#3ac97d" onclick="pickColor(this)"></span>
+          <span class="color-dot" style="background:#c93a9a" data-color="#c93a9a" onclick="pickColor(this)"></span>
+          <span class="color-dot" style="background:#e0b83a" data-color="#e0b83a" onclick="pickColor(this)"></span>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label>界面模式</label>
+        <div class="toggle-row">
+          <button id="themeDark" onclick="setTheme('dark')">🌙 深色</button>
+          <button id="themeLight" onclick="setTheme('light')">☀️ 浅色</button>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label>默认视频源</label>
+        <select id="defaultSource">
+          <option value="0">线路一（推荐）</option>
+          <option value="1">线路二</option>
+          <option value="2">线路三</option>
+        </select>
+      </div>
+      <div class="settings-actions">
+        <button onclick="saveSettings()">保存设置</button>
+        <button class="btn-danger" onclick="doLogout()">退出登录</button>
+      </div>
+      <div class="watch-history">
+        <h3>观看历史</h3>
+        <div id="historyList"></div>
+        <button class="btn-clear" onclick="clearHistory()">清除历史</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div class="toast" id="toast"></div>
+
+  <footer>
+    <p>映巢 · 内容来源于互联网公开资源 · 仅供个人学习使用</p>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
