@@ -12,7 +12,7 @@
 const API = (() => {
 
   // ⬇️ 填入你的 Cloudflare Worker 地址（部署后替换这里）
-  const WORKER_BASE = 'https://way-movie.sir-way105.workers.dev/';
+  const WORKER_BASE = 'https://way-movie.sir-way105.workers.dev';
 
   // 5条精选数据源（通过Worker中转，无跨域问题）
   const SOURCE_NAMES = ['百度云资源', '非凡资源', '量子资源', '木童目资源', '蓝之资源'];
