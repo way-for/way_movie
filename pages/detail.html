@@ -112,28 +112,17 @@
         <input type="text" id="setNickname" placeholder="昵称" maxlength="12" />
       </div>
       <div class="setting-item">
-        <label>主题颜色</label>
-        <div class="color-picker">
-          <span class="color-dot" style="background:#e05c3a" data-color="#e05c3a" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#3a7de0" data-color="#3a7de0" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#3ac97d" data-color="#3ac97d" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#c93a9a" data-color="#c93a9a" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#e0b83a" data-color="#e0b83a" onclick="pickColor(this)"></span>
-        </div>
+        <label>主题风格</label>
+        <div id="themePicker"></div>
       </div>
-      <div class="setting-item">
-        <label>界面模式</label>
-        <div class="toggle-row">
-          <button id="themeDark" onclick="setTheme('dark')">🌙 深色</button>
-          <button id="themeLight" onclick="setTheme('light')">☀️ 浅色</button>
-        </div>
-      </div>
+      
       <div class="setting-item">
         <label>默认视频源</label>
         <select id="defaultSource">
           <option value="0">线路一（推荐）</option>
           <option value="1">线路二</option>
           <option value="2">线路三</option>
+          <option value="3">线路四</option>
         </select>
       </div>
       <div class="settings-actions">
@@ -175,7 +164,7 @@
           type: detail.type_name,
         });
 
-        document.title = (detail.vod_name || '播放') + ' - 映巢';
+        document.title = (detail.vod_name || '播放') + ' - 飘雪';
         renderTitleArea(detail);
         renderEpisodeArea(detail);
         loadSidebar(detail);
