@@ -1,26 +1,52 @@
 /**
  * api.js - 飘雪影视数据层
- * 使用支持 CORS 的苹果CMS公开JSON接口
+ * 
+ * ⚠️ 使用前必须先部署 Cloudflare Worker：
+ *    1. 注册 https://workers.cloudflare.com
+ *    2. 创建 Worker，粘贴 cloudflare-worker.js 内容，Deploy
+ *    3. 将你的 Worker 地址填入下方 WORKER_BASE
+ * 
+ * Worker 地址格式：https://你的名字.workers.dev
  */
 
 const API = (() => {
 
-  const SOURCES = [
-    { name: '线路一', api: 'https://api.xinlangapi.com/xinlangapi.php/provide/vod' },
-    { name: '线路二', api: 'https://api.lziapi.com/api.php/provide/vod'            },
-    { name: '线路三', api: 'https://api.feizhuapi.com/api.php/provide/vod'         },
-    { name: '线路四', api: 'https://cj.lziapi.com/api.php/provide/vod'             },
-  ];
+  // ⬇️ 填入你的 Cloudflare Worker 地址（部署后替换这里）
+  const WORKER_BASE = 'https://way-movie.sir-way105.workers.dev/';
+
+  // 5条精选数据源（通过Worker中转，无跨域问题）
+  const SOURCE_NAMES = ['百度云资源', '非凡资源', '量子资源', '木童目资源', '蓝之资源'];
 
   const TYPE_MAP = { movie:'1', tv:'2', anime:'4', variety:'3' };
 
-  async function fetchJSON(url) {
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(8000),
+  // ================================================================
+  //  检查 Worker 是否已配置
+  // ================================================================
+  function isWorkerConfigured() {
+    return WORKER_BASE && !WORKER_BASE.includes('YOUR_WORKER');
+  }
+
+  // ================================================================
+  //  核心请求
+  // ================================================================
+  async function fetchData(params, sourceIdx = 0) {
+    if (!isWorkerConfigured()) {
+      throw new Error('WORKER_NOT_CONFIGURED');
+    }
+
+    const url = new URL(WORKER_BASE);
+    url.searchParams.set('source', sourceIdx);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') url.searchParams.set(k, v);
+    });
+
+    const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
+    const data = await res.json();
+    if (!data || data.list === undefined) throw new Error('数据格式异常');
+    return data;
   }
 
   function getPreferredSourceIdx() {
@@ -34,41 +60,28 @@ const API = (() => {
     return 0;
   }
 
-  async function request(buildUrl, startIdx) {
-    const idx = startIdx ?? getPreferredSourceIdx();
-    const errors = [];
-    for (let i = 0; i < SOURCES.length; i++) {
-      const src = SOURCES[(idx + i) % SOURCES.length];
-      try {
-        const data = await fetchJSON(buildUrl(src));
-        if (data && data.list !== undefined) return { data, sourceIdx: (idx+i) % SOURCES.length };
-      } catch(e) { errors.push(src.name + ': ' + e.message); }
-    }
-    throw new Error('所有数据源不可用');
-  }
+  // ================================================================
+  //  Public API
+  // ================================================================
 
-  async function getList(type, page=1, filter='') {
-    const tid = TYPE_MAP[type] || '1';
-    const {data} = await request(src => {
-      let u = src.api + '/?ac=videolist&t=' + tid + '&pg=' + page;
-      if (filter) u += '&f=' + encodeURIComponent(filter);
-      return u;
-    });
-    return data;
+  async function getList(type, page = 1, filter = '') {
+    const idx = getPreferredSourceIdx();
+    return fetchData({ ac:'videolist', t:TYPE_MAP[type]||'1', pg:page, f:filter }, idx);
   }
 
   async function search(keyword) {
-    const {data} = await request(src => src.api + '/?ac=videolist&wd=' + encodeURIComponent(keyword));
-    return data;
+    const idx = getPreferredSourceIdx();
+    return fetchData({ ac:'videolist', wd:keyword }, idx);
   }
 
   async function getDetail(id) {
-    const {data, sourceIdx} = await request(src => src.api + '/?ac=videolist&ids=' + id);
+    const idx = getPreferredSourceIdx();
+    const data = await fetchData({ ac:'videolist', ids:id }, idx);
     const list = data?.list || [];
     if (!list.length) throw new Error('未找到视频');
     const item = list[0];
     item._parsedUrls = parsePlayUrls(item.vod_play_url, item.vod_play_from);
-    item._sourceIdx = sourceIdx;
+    item._sourceIdx = idx;
     return item;
   }
 
@@ -104,5 +117,8 @@ const API = (() => {
     return videoUrl;
   }
 
-  return { getList, search, getDetail, getHomeData, buildPlayerUrl, SOURCES, TYPE_MAP };
+  return {
+    getList, search, getDetail, getHomeData, buildPlayerUrl,
+    SOURCE_NAMES, TYPE_MAP, isWorkerConfigured,
+  };
 })();

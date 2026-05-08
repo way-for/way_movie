@@ -3,95 +3,70 @@
 ## 📁 项目结构
 ```
 movie-site/
-├── index.html          # 首页
-├── css/
-│   └── style.css       # 全局样式
+├── index.html              # 首页
+├── cloudflare-worker.js    # ⭐ Cloudflare Worker 代理脚本
+├── css/style.css           # 全局样式（6套主题）
 ├── js/
-│   ├── api.js          # 视频数据API层
-│   ├── auth.js         # 用户登录/设置
-│   └── app.js          # 首页逻辑
+│   ├── api.js              # 数据层（填入Worker地址后生效）
+│   ├── auth.js             # 用户系统
+│   └── app.js              # 首页逻辑
 └── pages/
-    ├── movie.html      # 电影分类页
-    ├── tv.html         # 剧集分类页
-    ├── anime.html      # 动漫分类页
-    ├── variety.html    # 综艺分类页
-    ├── search.html     # 搜索页
-    └── detail.html     # 播放详情页
+    ├── movie/tv/anime/variety.html  # 分类页
+    ├── search.html         # 搜索页
+    └── detail.html         # 播放页
 ```
 
 ---
 
-## 🚀 部署到 GitHub Pages（全程免费）
+## 🚀 两步部署
 
-### 第一步：上传代码
-1. 打开你的 GitHub 仓库（或新建一个，名称随意，比如 `my-movie-site`）
-2. 点击仓库页面的 **Add file → Upload files**
-3. 把 `movie-site` 文件夹里的**所有文件**拖进去（注意：要保持目录结构）
-4. 点击 **Commit changes** 提交
+### 第一步：部署 Cloudflare Worker（解决跨域，约5分钟）
 
-### 第二步：开启 GitHub Pages
-1. 进入仓库 → 点击顶部 **Settings**（设置）
-2. 左侧菜单找到 **Pages**
-3. Source 选择 **Deploy from a branch**
-4. Branch 选择 **main**，文件夹选 **/ (root)**
-5. 点击 **Save**
+1. 注册免费账号：https://workers.cloudflare.com
+2. Workers & Pages → Create → Create Worker
+3. 把 `cloudflare-worker.js` 全部内容粘贴进去 → Deploy
+4. **复制你的 Worker 地址**（如 `https://abc123.workers.dev`）
+5. 用记事本打开 `js/api.js`，找到第13行：
+   ```
+   const WORKER_BASE = 'https://YOUR_WORKER.workers.dev';
+   ```
+   把 `YOUR_WORKER` 替换成你的实际地址
 
-### 第三步：访问网站
-- 等待约 1-3 分钟，GitHub 会显示你的网址
-- 格式为：`https://你的用户名.github.io/仓库名/`
-- 例如：`https://zhangsan.github.io/my-movie-site/`
-- 手机和电脑都可以直接访问这个网址 ✅
+### 第二步：上传到 GitHub Pages
+
+1. 仓库 → Add file → Upload files → 拖入所有文件 → Commit
+2. Settings → Pages → Source: main → Save
+3. 访问 `https://用户名.github.io/仓库名/`
 
 ---
 
-## 📱 使用说明
+## 🎨 6套主题
 
-### 注册/登录
-- 点击右上角「登录」按钮
-- 首次使用点「注册」，填写用户名和密码即可
-- 数据保存在当前设备浏览器，无需真实信息
+登录后点右上角头像 → 设置 → 主题风格
 
-### 个人设置（登录后可用）
-- 点击右上角头像 → 进入设置
-- 可修改：昵称、主题颜色、深色/浅色模式、默认播放线路
-- 查看并清除观看历史
+| 主题 | 风格 |
+|------|------|
+| 暗焰 | 深色橙红（默认）|
+| 极夜 | 深色蓝紫 |
+| 翠林 | 深色绿 |
+| 星海 | 深色青 |
+| 玫瑰 | 浅色暖粉 |
+| 雪域 | 浅色冷蓝 |
 
-### 视频播放
-- 部分视频有多条播放线路（线路一、二、三）
-- 若一条线路无法播放，切换其他线路试试
-- 电视剧/动漫/综艺支持选集播放
+---
 
-### 搜索
-- 点击🔍图标或底部导航「搜索」
-- 支持中文搜索电影名、演员名
+## 📺 5条数据源（通过Worker自动切换）
+
+- 百度云资源（最稳定）
+- 非凡资源（速度快）
+- 量子资源（内容全）
+- 木童目资源
+- 蓝之资源
 
 ---
 
 ## ⚠️ 注意事项
 
-1. **视频内容**来自互联网公开数据源（苹果CMS），内容质量和可用性由数据源决定
-2. **登录数据**仅保存在当前设备浏览器，换设备或清除浏览器数据后需重新注册
-3. **数据源失效**：若所有内容加载失败，可能是数据源暂时不可用，稍后刷新重试
-4. 本项目**仅供个人学习使用**
-
----
-
-## 🔧 自定义配置
-
-### 更换数据源
-编辑 `js/api.js` 文件顶部的 `SOURCES` 数组，替换为其他苹果CMS站点：
-```javascript
-const SOURCES = [
-  { name: '线路一', api: 'https://你的数据源地址/api.php/provide/vod' },
-  // ...
-];
-```
-
-### 更换网站名称
-全局搜索替换「飘雪」为你喜欢的名字即可。
-
-### 更改主题色
-编辑 `css/style.css` 第8行：
-```css
---accent: #e05c3a;  /* 改成你喜欢的颜色 */
-```
+- 登录数据仅保存在本设备
+- Cloudflare Worker 免费额度：每天10万次请求
+- 仅供个人学习使用
