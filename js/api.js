@@ -1,85 +1,81 @@
+/**
+ * api.js - 飘雪影视数据层
+ * Worker地址已配置：https://way-movie.sir-way105.workers.dev
+ */
 const API = (() => {
-  const WORKER_BASE = 'https://way-movie.sir-way105.workers.dev';
-  const SOURCE_NAMES = ['百度云资源', '非凡资源', '量子资源', '木童目资源', '蓝之资源'];
-  const TYPE_MAP = { movie:'1', tv:'2', anime:'4', variety:'3' };
+  const W = 'https://way-movie.sir-way105.workers.dev';
 
-  function isWorkerConfigured() {
-    return WORKER_BASE && !WORKER_BASE.includes('YOUR_WORKER');
-  }
+  const TYPE = { movie:'1', tv:'2', anime:'4', variety:'3' };
 
-  async function fetchData(params, sourceIdx = 0) {
-    if (!isWorkerConfigured()) throw new Error('WORKER_NOT_CONFIGURED');
-    const url = new URL(WORKER_BASE);
-    url.searchParams.set('source', sourceIdx);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== '') url.searchParams.set(k, v);
-    });
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10000) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data || data.list === undefined) throw new Error('数据格式异常');
-    return data;
-  }
-
-  function getPreferredSourceIdx() {
+  function srcIdx() {
     try {
-      const username = localStorage.getItem('mc_current');
-      if (username) {
-        const d = JSON.parse(localStorage.getItem('mc_user_' + username) || '{}');
-        if (d.settings?.defaultSource !== undefined) return parseInt(d.settings.defaultSource) || 0;
+      const u = localStorage.getItem('mc_current');
+      if (u) {
+        const d = JSON.parse(localStorage.getItem('mc_user_'+u)||'{}');
+        return parseInt(d.settings?.defaultSource)||0;
       }
-    } catch(e) {}
+    } catch(e){}
     return 0;
   }
 
-  async function getList(type, page = 1, filter = '') {
-    return fetchData({ ac:'videolist', t:TYPE_MAP[type]||'1', pg:page, f:filter }, getPreferredSourceIdx());
+  async function req(params) {
+    const p = new URLSearchParams({ s: srcIdx(), ...params });
+    const res = await fetch(`${W}/?${p}`, { signal: AbortSignal.timeout(12000) });
+    const data = await res.json();
+    return data;
   }
 
-  async function search(keyword) {
-    return fetchData({ ac:'videolist', wd:keyword }, getPreferredSourceIdx());
+  async function getList(type, page=1, filter='') {
+    const p = { ac:'videolist', t:TYPE[type]||'1', pg:page };
+    if (filter) p.f = filter;
+    return req(p);
+  }
+
+  async function search(kw) {
+    return req({ ac:'videolist', wd:kw });
   }
 
   async function getDetail(id) {
-    const data = await fetchData({ ac:'videolist', ids:id }, getPreferredSourceIdx());
-    const list = data?.list || [];
-    if (!list.length) throw new Error('未找到视频');
-    const item = list[0];
-    item._parsedUrls = parsePlayUrls(item.vod_play_url, item.vod_play_from);
+    const data = await req({ ac:'videolist', ids:id });
+    const item = (data.list||[])[0];
+    if (!item) throw new Error('未找到');
+    item._urls = parseUrls(item.vod_play_url, item.vod_play_from);
     return item;
   }
 
   async function getHomeData() {
-    const [movies, tvs, animes, varieties] = await Promise.allSettled([
-      getList('movie',1), getList('tv',1), getList('anime',1), getList('variety',1),
+    const [a,b,c,d] = await Promise.allSettled([
+      getList('movie',1), getList('tv',1), getList('anime',1), getList('variety',1)
     ]);
     return {
-      movie:   movies.status==='fulfilled' ? (movies.value?.list || []) : [],
-      tv:      tvs.status==='fulfilled'    ? (tvs.value?.list    || []) : [],
-      anime:   animes.status==='fulfilled' ? (animes.value?.list || []) : [],
-      variety: varieties.status==='fulfilled' ? (varieties.value?.list || []) : [],
+      movie:   a.status==='fulfilled' ? (a.value?.list||[]) : [],
+      tv:      b.status==='fulfilled' ? (b.value?.list||[]) : [],
+      anime:   c.status==='fulfilled' ? (c.value?.list||[]) : [],
+      variety: d.status==='fulfilled' ? (d.value?.list||[]) : [],
     };
   }
 
-  function parsePlayUrls(playUrlStr, playFrom) {
-    if (!playUrlStr) return [];
-    const fromArr = (playFrom||'').split('$$$');
-    return playUrlStr.split('$$$').map((group, gi) => {
-      const episodes = group.split('#').map((ep, i) => {
-        const parts = ep.split('$');
-        return { name: parts[0]||('第'+(i+1)+'集'), url: parts[1]||parts[0]||'' };
-      }).filter(ep => ep.url);
-      return { name: fromArr[gi]||('线路'+(gi+1)), episodes };
-    }).filter(g => g.episodes.length > 0);
+  function parseUrls(str, from) {
+    if (!str) return [];
+    const froms = (from||'').split('$$$');
+    return str.split('$$$').map((g,gi)=>{
+      const eps = g.split('#').map((ep,i)=>{
+        const p = ep.split('$');
+        return { name:p[0]||`第${i+1}集`, url:p[1]||p[0]||'' };
+      }).filter(e=>e.url);
+      return { name:froms[gi]||`线路${gi+1}`, episodes:eps };
+    }).filter(g=>g.episodes.length);
   }
 
-  function buildPlayerUrl(videoUrl) {
-    if (!videoUrl) return '';
-    if (/\.(m3u8|mp4|flv)/i.test(videoUrl) || videoUrl.startsWith('http')) {
-      return 'https://player.v.geilijiasu.com/danmu.php?url=' + encodeURIComponent(videoUrl);
-    }
-    return videoUrl;
+  function buildPlayerUrl(url) {
+    if (!url) return '';
+    if (/\.(m3u8|mp4|flv)/i.test(url)||url.startsWith('http'))
+      return 'https://player.v.geilijiasu.com/danmu.php?url='+encodeURIComponent(url);
+    return url;
   }
 
-  return { getList, search, getDetail, getHomeData, buildPlayerUrl, SOURCE_NAMES, TYPE_MAP, isWorkerConfigured };
+  // 始终返回true，Worker地址已硬编码
+  function isWorkerConfigured() { return true; }
+
+  return { getList, search, getDetail, getHomeData, buildPlayerUrl, isWorkerConfigured, TYPE };
 })();
