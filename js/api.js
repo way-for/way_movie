@@ -1,60 +1,81 @@
 /**
- * api.js - 飘雪影视数据层
- * Worker: https://way-movie.sir-way105.workers.dev
+ * api.js - 飘雪影视数据层 v7
+ * 锁定数据源，保证列表和详情用同一个源，内容不错乱
  */
 const API = (() => {
   const W = 'https://way-movie.sir-way105.workers.dev';
   const TYPE = { movie:'1', tv:'2', anime:'4', variety:'3' };
 
-  function srcIdx() {
+  // 当前会话锁定的源索引（保证列表和详情用同一个源）
+  let _lockedSrc = null;
+
+  function preferredSrc() {
     try {
       const u = localStorage.getItem('mc_current');
       if (u) {
         const d = JSON.parse(localStorage.getItem('mc_user_'+u)||'{}');
-        return parseInt(d.settings?.defaultSource)||0;
+        const idx = parseInt(d.settings?.defaultSource);
+        if (!isNaN(idx)) return idx;
       }
     } catch(e){}
     return 0;
   }
 
-  // 带重试的请求：自动遍历所有数据源
-  async function req(params, maxRetry = 5) {
-    const baseIdx = srcIdx();
-    for (let i = 0; i < maxRetry; i++) {
-      const p = new URLSearchParams({ s: (baseIdx + i) % 10, ...params });
-      try {
-        const res = await fetch(`${W}/?${p}`, { signal: AbortSignal.timeout(12000) });
-        const data = await res.json();
-        if (data && data.list && data.list.length > 0) return data;
-      } catch(e) {
-        console.warn(`源${i}请求失败:`, e.message);
-      }
+  async function req(params, forceSrc) {
+    const si = forceSrc ?? _lockedSrc ?? preferredSrc();
+    const p = new URLSearchParams({ s: si, ...params });
+    // 详情请求锁定源，避免和列表源不一致导致ID对不上
+    if (forceSrc !== undefined) p.set('lock', '1');
+
+    const res = await fetch(`${W}/?${p}`, { signal: AbortSignal.timeout(12000) });
+    const data = await res.json();
+
+    // 记录实际返回的源，后续详情请求用同一个源
+    if (data._src !== undefined && _lockedSrc === null) {
+      _lockedSrc = data._src;
     }
-    // 所有源都失败，返回空
-    return { list: [], pagecount: 0, total: 0 };
+    return data;
   }
 
   async function getList(type, page=1, filter='') {
     const p = { ac:'videolist', t:TYPE[type]||'1', pg:page };
     if (filter) p.f = filter;
-    return req(p);
+    // 列表不锁定，允许自动换源
+    _lockedSrc = null;
+    const data = await req(p);
+    return data;
   }
 
   async function search(kw) {
+    _lockedSrc = null;
     return req({ ac:'videolist', wd:kw });
   }
 
   async function getDetail(id) {
-    const data = await req({ ac:'videolist', ids:id });
-    const item = (data.list||[])[0];
-    if (!item) throw new Error('未找到');
-    item._urls = parseUrls(item.vod_play_url, item.vod_play_from);
-    return item;
+    // 详情锁定已知可用的源
+    const src = _lockedSrc ?? preferredSrc();
+    // 先用锁定源试，失败再遍历
+    for (let i = 0; i < 8; i++) {
+      const trySrc = (src + i) % 12;
+      try {
+        const data = await req({ ac:'videolist', ids:id }, trySrc);
+        const item = (data.list||[])[0];
+        if (!item) continue;
+        item._urls = parseUrls(item.vod_play_url, item.vod_play_from);
+        item._usedSrc = trySrc;
+        return item;
+      } catch(e) { continue; }
+    }
+    throw new Error('未找到视频详情');
   }
 
   async function getHomeData() {
+    _lockedSrc = null;
     const [a,b,c,d] = await Promise.allSettled([
-      getList('movie',1), getList('tv',1), getList('anime',1), getList('variety',1)
+      req({ ac:'videolist', t:'1', pg:1 }),
+      req({ ac:'videolist', t:'2', pg:1 }),
+      req({ ac:'videolist', t:'4', pg:1 }),
+      req({ ac:'videolist', t:'3', pg:1 }),
     ]);
     return {
       movie:   a.status==='fulfilled' ? (a.value?.list||[]) : [],
