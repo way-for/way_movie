@@ -1,10 +1,5 @@
-/**
- * api.js - 飘雪影视数据层
- * Worker地址已配置：https://way-movie.sir-way105.workers.dev
- */
 const API = (() => {
   const W = 'https://way-movie.sir-way105.workers.dev';
-
   const TYPE = { movie:'1', tv:'2', anime:'4', variety:'3' };
 
   function srcIdx() {
@@ -74,7 +69,6 @@ const API = (() => {
     return url;
   }
 
-  // 始终返回true，Worker地址已硬编码
   function isWorkerConfigured() { return true; }
 
   return { getList, search, getDetail, getHomeData, buildPlayerUrl, isWorkerConfigured, TYPE };
