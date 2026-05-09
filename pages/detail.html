@@ -68,7 +68,13 @@
           <div class="spinner"></div>
           <span>正在加载视频…</span>
         </div>
-        <iframe id="playerFrame" allowfullscreen style="display:none;width:100%;height:100%;border:none;"></iframe>
+        <iframe id="playerFrame" allowfullscreen style="display:none;width:100%;height:100%;border:none;" allow="autoplay; fullscreen"></iframe>
+        <button id="switchPlayerBtn" style="
+          position:absolute;bottom:12px;right:12px;z-index:10;
+          background:rgba(0,0,0,0.6);color:#fff;border:1px solid rgba(255,255,255,0.3);
+          padding:6px 14px;border-radius:6px;font-size:0.8rem;cursor:pointer;
+          backdrop-filter:blur(4px);display:none;
+        " onclick="">🔄 换一个播放器</button>
       </div>
 
       <!-- 标题信息 -->
@@ -257,29 +263,57 @@
       currentEpIdx = ei;
       currentSourceGroup = gi;
 
-      // 更新集数按钮样式
+      // 更新集数按钮高亮
       document.querySelectorAll(`[id^="ep_${gi}_"]`).forEach((btn, i) => {
-        btn.classList.toggle('active', i===ei);
+        btn.classList.toggle('active', i === ei);
       });
 
-      // 显示加载中
-      const box = document.getElementById('playerBox');
       const loading = document.getElementById('playerLoading');
-      const frame = document.getElementById('playerFrame');
+      const frame   = document.getElementById('playerFrame');
       if (loading) loading.style.display = 'flex';
-      if (frame)  frame.style.display = 'none';
+      if (frame)   { frame.style.display = 'none'; frame.src = ''; }
 
-      // 构建播放URL
-      const playerUrl = API.buildPlayerUrl(ep.url);
-      setTimeout(() => {
-        if (frame) {
-          frame.src = playerUrl;
-          frame.style.display = 'block';
-          frame.onload = () => { if(loading) loading.style.display='none'; };
-          // 5秒超时后隐藏loading
-          setTimeout(() => { if(loading) loading.style.display='none'; }, 5000);
+      const rawUrl = ep.url;
+
+      // 备用公共解析播放器列表（依次尝试）
+      const players = [
+        `https://way-movie.sir-way105.workers.dev/player?url=${encodeURIComponent(rawUrl)}`,
+        `https://jx.jsonplayer.com/player/?url=${encodeURIComponent(rawUrl)}`,
+        `https://jx.xmflv.com/?url=${encodeURIComponent(rawUrl)}`,
+        `https://jx.m3u8play.com/?url=${encodeURIComponent(rawUrl)}`,
+      ];
+
+      let playerIdx = 0;
+
+      function tryPlayer(idx) {
+        if (idx >= players.length) {
+          if (loading) loading.style.display = 'none';
+          showToast('所有播放器均无法加载，请换一个线路');
+          return;
         }
-      }, 300);
+        if (frame) {
+          frame.src = players[idx];
+          frame.style.display = 'block';
+          if (loading) loading.style.display = 'none';
+        }
+      }
+
+      // 更新"换一个播放器"按钮
+      const switchBtn = document.getElementById('switchPlayerBtn');
+      if (switchBtn) {
+        switchBtn.onclick = () => {
+          playerIdx = (playerIdx + 1) % players.length;
+          showToast(`切换到备用播放器 ${playerIdx + 1}`);
+          if (frame) { frame.style.display='none'; frame.src=''; }
+          if (loading) loading.style.display='flex';
+          setTimeout(() => tryPlayer(playerIdx), 300);
+        };
+      }
+
+      // 显示换播放器按钮
+      const sb = document.getElementById('switchPlayerBtn');
+      if (sb) sb.style.display = 'block';
+      setTimeout(() => tryPlayer(0), 300);
     }
 
     function toggleFav() {
