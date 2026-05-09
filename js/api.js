@@ -1,10 +1,9 @@
 /**
  * api.js - 飘雪影视数据层
- * Worker地址已配置：https://way-movie.sir-way105.workers.dev
+ * Worker: https://way-movie.sir-way105.workers.dev
  */
 const API = (() => {
   const W = 'https://way-movie.sir-way105.workers.dev';
-
   const TYPE = { movie:'1', tv:'2', anime:'4', variety:'3' };
 
   function srcIdx() {
@@ -18,11 +17,21 @@ const API = (() => {
     return 0;
   }
 
-  async function req(params) {
-    const p = new URLSearchParams({ s: srcIdx(), ...params });
-    const res = await fetch(`${W}/?${p}`, { signal: AbortSignal.timeout(12000) });
-    const data = await res.json();
-    return data;
+  // 带重试的请求：自动遍历所有数据源
+  async function req(params, maxRetry = 5) {
+    const baseIdx = srcIdx();
+    for (let i = 0; i < maxRetry; i++) {
+      const p = new URLSearchParams({ s: (baseIdx + i) % 10, ...params });
+      try {
+        const res = await fetch(`${W}/?${p}`, { signal: AbortSignal.timeout(12000) });
+        const data = await res.json();
+        if (data && data.list && data.list.length > 0) return data;
+      } catch(e) {
+        console.warn(`源${i}请求失败:`, e.message);
+      }
+    }
+    // 所有源都失败，返回空
+    return { list: [], pagecount: 0, total: 0 };
   }
 
   async function getList(type, page=1, filter='') {
@@ -69,12 +78,9 @@ const API = (() => {
 
   function buildPlayerUrl(url) {
     if (!url) return '';
-    if (/\.(m3u8|mp4|flv)/i.test(url)||url.startsWith('http'))
-      return 'https://way-movie.sir-way105.workers.dev/player?url='+encodeURIComponent(url);
-    return url;
+    return `${W}/player?url=${encodeURIComponent(url)}`;
   }
 
-  // 始终返回true，Worker地址已硬编码
   function isWorkerConfigured() { return true; }
 
   return { getList, search, getDetail, getHomeData, buildPlayerUrl, isWorkerConfigured, TYPE };
