@@ -14,7 +14,7 @@
       <a class="logo" href="../index.html">飘<span>雪</span></a>
       <nav class="nav-links">
         <a href="../index.html">首页</a>
-        <a href="anime.html" class="active">动漫</a>
+        <a href="anime.html" class="">电影</a>
         <a href="tv.html">剧集</a>
         <a href="anime.html" class="active">动漫</a>
         <a href="variety.html">综艺</a>
@@ -38,11 +38,11 @@
       <h1>✨ 动漫</h1>
       <div class="filter-bar">
         <div class="filter-group" id="yearFilter">
-          <button class="filter-btn active" data-val="" onclick="setFilter('year','',this)">全部年份</button>
+          <button class="filter-btn active" data-val="" onclick="setFilter('year','',this)">全部</button>
+          <button class="filter-btn" data-val="2025" onclick="setFilter('year','2025',this)">2025</button>
           <button class="filter-btn" data-val="2024" onclick="setFilter('year','2024',this)">2024</button>
           <button class="filter-btn" data-val="2023" onclick="setFilter('year','2023',this)">2023</button>
           <button class="filter-btn" data-val="2022" onclick="setFilter('year','2022',this)">2022</button>
-          <button class="filter-btn" data-val="2021" onclick="setFilter('year','2021',this)">2021</button>
         </div>
       </div>
     </div>
@@ -50,7 +50,8 @@
 
   <div class="page-content">
     <div class="card-grid" id="contentGrid"></div>
-    <button class="load-more" id="loadMoreBtn" onclick="loadMore()">加载更多</button>
+    <div id="statusMsg" style="text-align:center;padding:20px;color:var(--text-muted);font-size:.85rem;display:none"></div>
+    <button class="load-more" id="loadMoreBtn" onclick="loadMore()" style="display:none">加载更多</button>
   </div>
 
   <!-- 弹窗 -->
@@ -58,6 +59,7 @@
     <div class="modal">
       <button class="modal-close" onclick="closeModal()">✕</button>
       <h2>登录 / 注册</h2>
+      <p class="modal-sub">登录后可保存观看历史和收藏</p>
       <input type="text" id="inputUsername" placeholder="用户名" maxlength="16" />
       <input type="password" id="inputPassword" placeholder="密码" maxlength="32" />
       <div class="modal-btns">
@@ -72,25 +74,15 @@
       <h2>个人设置</h2>
       <div class="settings-avatar" id="settingsAvatar"></div>
       <div class="setting-item"><label>显示名称</label><input type="text" id="setNickname" placeholder="昵称" /></div>
-      <div class="setting-item">
-        <label>主题颜色</label>
-        <div class="color-picker">
-          <span class="color-dot" style="background:#e05c3a" data-color="#e05c3a" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#3a7de0" data-color="#3a7de0" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#3ac97d" data-color="#3ac97d" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#c93a9a" data-color="#c93a9a" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#e0b83a" data-color="#e0b83a" onclick="pickColor(this)"></span>
-        </div>
-      </div>
-      <div class="setting-item"><label>界面模式</label>
-        <div class="toggle-row"><button id="themeDark" onclick="setTheme('dark')">🌙 深色</button><button id="themeLight" onclick="setTheme('light')">☀️ 浅色</button></div>
-      </div>
+      <div class="setting-item"><label>主题风格</label><div id="themePicker"></div></div>
       <div class="setting-item"><label>默认视频源</label>
-        <select id="defaultSource"><option value="0">线路一（推荐）</option><option value="1">线路二</option><option value="2">线路三</option>
-          <option value="3">线路四</option></select>
+        <select id="defaultSource">
+          <option value="0">线路一</option><option value="1">线路二</option>
+          <option value="2">线路三</option><option value="3">线路四</option>
+        </select>
       </div>
       <div class="settings-actions">
-        <button onclick="saveSettings()">保存设置</button>
+        <button onclick="saveSettings()">保存</button>
         <button class="btn-danger" onclick="doLogout()">退出登录</button>
       </div>
       <div class="watch-history"><h3>观看历史</h3><div id="historyList"></div><button class="btn-clear" onclick="clearHistory()">清除历史</button></div>
@@ -98,43 +90,44 @@
   </div>
   <div class="toast" id="toast"></div>
 
-  <!-- 移动端底部导航 -->
   <nav class="mobile-nav">
     <a href="../index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>首页</a>
-    <a href="anime.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>动漫</a>
-    <a href="tv.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>剧集</a>
-    <a href="anime.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>动漫</a>
+    <a href="anime.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>电影</a>
+    <a href="tv.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>剧集</a>
+    <a href="anime.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>动漫</a>
     <a href="search.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>搜索</a>
   </nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/auth.js"></script>
   <script>
-    const TYPE    = 'anime';
+    const TYPE = 'anime';
     let currentPage = 1;
     let currentFilter = '';
     let isLoading = false;
+    let hasMore = true;
 
     function buildCard(item) {
-      const id = item.vod_id, name = item.vod_name||'', pic = item.vod_pic||'';
+      const id=item.vod_id, name=item.vod_name||'', pic=item.vod_pic||'';
       const year=item.vod_year||'', score=item.vod_score||'', tag=item.vod_remarks||'';
-      return `
-        <div class="card" onclick="location.href='detail.html?id=${id}'">
-          <div class="card-thumb">
-            ${pic?`<img src="${pic}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\"no-img\\">🎬</div>'">`:`<div class="no-img">🎬</div>`}
-            ${score?`<span class="card-score">⭐${score}</span>`:''}
-            ${tag?`<span class="card-tag">${tag}</span>`:''}
-            <div class="card-play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M8 5v14l11-7z"/></svg></div>
-          </div>
-          <div class="card-info">
-            <div class="card-title">${name}</div>
-            <div class="card-meta">${year}</div>
-          </div>
-        </div>`;
+      return `<div class="card" onclick="location.href='detail.html?id=${id}'">
+        <div class="card-thumb">
+          ${pic?`<img src="${pic}" loading="lazy" onerror="this.style.display='none'">`:''}
+          ${!pic?`<div class="no-img">🎬</div>`:''}
+          ${score?`<span class="card-score">⭐${score}</span>`:''}
+          ${tag?`<span class="card-tag">${tag}</span>`:''}
+          <div class="card-play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M8 5v14l11-7z"/></svg></div>
+        </div>
+        <div class="card-info">
+          <div class="card-title">${name}</div>
+          <div class="card-meta">${year}</div>
+        </div>
+      </div>`;
     }
 
-    function buildSkeletons(n=12) {
-      return Array(n).fill(`
+    function showSkeletons() {
+      const grid = document.getElementById('contentGrid');
+      grid.innerHTML = Array(12).fill(`
         <div class="skeleton" style="border-radius:10px">
           <div class="skeleton" style="aspect-ratio:2/3;border-radius:10px 10px 0 0"></div>
           <div class="skeleton" style="height:12px;margin:10px 8px 4px;border-radius:4px"></div>
@@ -142,27 +135,81 @@
         </div>`).join('');
     }
 
+    function setStatus(msg) {
+      const el = document.getElementById('statusMsg');
+      el.style.display = msg ? 'block' : 'none';
+      el.textContent = msg;
+    }
+
     async function loadContent(page=1, append=false) {
       if (isLoading) return;
       isLoading = true;
       const grid = document.getElementById('contentGrid');
-      if (!append) grid.innerHTML = buildSkeletons();
+      const btn  = document.getElementById('loadMoreBtn');
+
+      if (!append) { showSkeletons(); setStatus(''); btn.style.display='none'; }
 
       try {
         const data = await API.getList(TYPE, page, currentFilter);
         const items = data.list || [];
-        const html  = items.map(buildCard).join('');
-        if (append) grid.insertAdjacentHTML('beforeend', html);
-        else        grid.innerHTML = html || '<p style="color:var(--text-muted);padding:20px">暂无内容</p>';
 
-        // 如果没有更多了，隐藏按钮
-        const btn = document.getElementById('loadMoreBtn');
-        if (items.length < 20) btn.style.display='none';
-        else btn.style.display='';
+        if (!items.length) {
+          if (!append) {
+            grid.innerHTML = '';
+            setStatus('暂无内容，正在尝试其他数据源…');
+            // 自动重试换源
+            setTimeout(() => retryWithNextSource(page), 1500);
+          }
+          isLoading = false;
+          return;
+        }
+
+        setStatus('');
+        const html = items.map(buildCard).join('');
+        if (append) grid.insertAdjacentHTML('beforeend', html);
+        else grid.innerHTML = html;
+
+        hasMore = items.length >= 20;
+        btn.style.display = hasMore ? 'block' : 'none';
+
       } catch(e) {
-        grid.innerHTML = '<p style="color:var(--text-muted);padding:20px">⚠️ 加载失败，请刷新重试</p>';
+        console.error('加载失败:', e);
+        if (!append) {
+          grid.innerHTML = '';
+          setStatus('⚠️ 加载失败，请刷新重试');
+        }
       }
       isLoading = false;
+    }
+
+    // 自动换源重试（最多尝试5次）
+    let retryCount = 0;
+    async function retryWithNextSource(page) {
+      if (retryCount >= 5) {
+        setStatus('⚠️ 所有数据源均无电影内容，请稍后刷新');
+        retryCount = 0;
+        return;
+      }
+      retryCount++;
+      setStatus(`暂无内容，正在尝试第 ${retryCount + 1} 条数据源…`);
+      // 通过修改偏好源触发不同的源
+      API._overrideSrc = retryCount;
+      try {
+        const data = await API.getList(TYPE, page, currentFilter);
+        const items = data.list || [];
+        if (!items.length) {
+          setTimeout(() => retryWithNextSource(page), 1000);
+          return;
+        }
+        retryCount = 0;
+        API._overrideSrc = null;
+        setStatus('');
+        document.getElementById('contentGrid').innerHTML = items.map(buildCard).join('');
+        const hasMore = items.length >= 20;
+        document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
+      } catch(e) {
+        setTimeout(() => retryWithNextSource(page), 1000);
+      }
     }
 
     function loadMore() {
@@ -171,9 +218,9 @@
     }
 
     function setFilter(type, val, el) {
-      currentPage = 1;
+      currentPage = 1; retryCount = 0;
       currentFilter = val;
-      document.querySelectorAll(`#${type}Filter .filter-btn`).forEach(b => b.classList.remove('active'));
+      document.querySelectorAll(`#${type}Filter .filter-btn`).forEach(b=>b.classList.remove('active'));
       el.classList.add('active');
       loadContent(1, false);
     }
@@ -185,9 +232,9 @@
     }
     function doSearch() {
       const kw = document.getElementById('searchInput')?.value?.trim();
-      if (kw) location.href='search.html?q='+encodeURIComponent(kw);
+      if (kw) location.href = 'search.html?q=' + encodeURIComponent(kw);
     }
-    function toDetail(id) { location.href='detail.html?id='+id; }
+    function toDetail(id) { location.href = 'detail.html?id=' + id; }
 
     document.addEventListener('DOMContentLoaded', () => { loadContent(1); });
   </script>
