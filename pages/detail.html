@@ -170,8 +170,8 @@
         loadSidebar(detail);
 
         // 自动播放第一集
-        if (detail._parsedUrls?.length > 0) {
-          const epUrl = detail._parsedUrls[currentSourceGroup]?.episodes[0]?.url;
+        if (detail._urls?.length > 0) {
+          const epUrl = detail._urls[currentSourceGroup]?.episodes[0]?.url;
           if (epUrl) playEpisode(currentSourceGroup, 0);
         }
 
@@ -209,7 +209,7 @@
     }
 
     function renderEpisodeArea(detail) {
-      const groups = detail._parsedUrls || [];
+      const groups = detail._urls || [];
       if (!groups.length) {
         document.getElementById('episodeArea').innerHTML =
           `<p style="color:var(--text-muted);font-size:0.85rem">暂无播放源</p>`;
@@ -250,7 +250,7 @@
     }
 
     function playEpisode(gi, ei) {
-      const groups = currentDetail?._parsedUrls || [];
+      const groups = currentDetail?._urls || [];
       const ep = groups[gi]?.episodes[ei];
       if (!ep || !ep.url) { showToast('该集暂无播放地址'); return; }
 
