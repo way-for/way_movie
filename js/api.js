@@ -9,7 +9,11 @@ const API = (() => {
   // 当前会话锁定的源索引（保证列表和详情用同一个源）
   let _lockedSrc = null;
 
+  // 外部可设置 API._overrideSrc 来强制换源（电影页重试用）
+  let _overrideSrc = null;
+
   function preferredSrc() {
+    if (_overrideSrc !== null) return _overrideSrc % 12;
     try {
       const u = localStorage.getItem('mc_current');
       if (u) {
@@ -40,9 +44,10 @@ const API = (() => {
   async function getList(type, page=1, filter='') {
     const p = { ac:'videolist', t:TYPE[type]||'1', pg:page };
     if (filter) p.f = filter;
-    // 列表不锁定，允许自动换源
     _lockedSrc = null;
     const data = await req(p);
+    // 锁定这次用的源，详情页保持一致
+    if (data._src !== undefined) _lockedSrc = data._src;
     return data;
   }
 
@@ -71,11 +76,15 @@ const API = (() => {
 
   async function getHomeData() {
     _lockedSrc = null;
+    // 先找一个可用源，然后用同一个源查所有分类，保证ID一致
+    const testData = await req({ ac:'videolist', t:'2', pg:1 });
+    const src = testData._src ?? 0;
+    _lockedSrc = src;
     const [a,b,c,d] = await Promise.allSettled([
-      req({ ac:'videolist', t:'1', pg:1 }),
-      req({ ac:'videolist', t:'2', pg:1 }),
-      req({ ac:'videolist', t:'4', pg:1 }),
-      req({ ac:'videolist', t:'3', pg:1 }),
+      req({ ac:'videolist', t:'1', pg:1 }, src),
+      req({ ac:'videolist', t:'2', pg:1 }, src),
+      req({ ac:'videolist', t:'4', pg:1 }, src),
+      req({ ac:'videolist', t:'3', pg:1 }, src),
     ]);
     return {
       movie:   a.status==='fulfilled' ? (a.value?.list||[]) : [],
@@ -104,5 +113,11 @@ const API = (() => {
 
   function isWorkerConfigured() { return true; }
 
-  return { getList, search, getDetail, getHomeData, buildPlayerUrl, isWorkerConfigured, TYPE };
+  // 暴露给外部控制
+  const pub = { getList, search, getDetail, getHomeData, buildPlayerUrl, isWorkerConfigured, TYPE };
+  Object.defineProperty(pub, '_overrideSrc', {
+    get: () => _overrideSrc,
+    set: (v) => { _overrideSrc = v; }
+  });
+  return pub;
 })();
