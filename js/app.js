@@ -1,7 +1,3 @@
-/**
- * app.js - 首页逻辑
- */
-
 function buildCard(item) {
   const id=item.vod_id, name=item.vod_name||'未知', pic=item.vod_pic||'';
   const year=item.vod_year||'', score=item.vod_score||'', tag=item.vod_remarks||'';
@@ -53,38 +49,24 @@ function doSearch(){
 
 async function loadHome() {
   ['movieRow','tvRow','animeRow','varietyRow'].forEach(id=>skeleton(id));
-
   try {
     const data = await API.getHomeData();
-    console.log('数据加载成功:', {
-      movie: data.movie.length,
-      tv: data.tv.length,
-      anime: data.anime.length,
-      variety: data.variety.length
-    });
-
     renderHero(data.movie[0]||data.tv[0]);
-
     const map = {
-      movieRow:   data.movie,
-      tvRow:      data.tv,
-      animeRow:   data.anime,
-      varietyRow: data.variety,
+      movieRow: data.movie, tvRow: data.tv,
+      animeRow: data.anime, varietyRow: data.variety,
     };
-
     for (const [id, items] of Object.entries(map)) {
       const el=document.getElementById(id); if(!el) continue;
-      if (items.length) {
-        el.innerHTML = items.slice(0,12).map(buildCard).join('');
-      } else {
-        el.innerHTML = `<p style="color:var(--text-muted);padding:16px;font-size:.85rem">暂无内容，请稍后刷新</p>`;
-      }
+      el.innerHTML = items.length
+        ? items.slice(0,12).map(buildCard).join('')
+        : `<p style="color:var(--text-muted);padding:16px;font-size:.85rem">暂无内容</p>`;
     }
   } catch(e) {
     console.error('加载失败:', e);
     ['movieRow','tvRow','animeRow','varietyRow'].forEach(id=>{
       const el=document.getElementById(id);
-      if(el) el.innerHTML=`<p style="color:var(--text-muted);padding:16px;font-size:.85rem">⚠️ 加载失败，请刷新重试</p>`;
+      if(el) el.innerHTML=`<p style="color:var(--text-muted);padding:16px;font-size:.85rem">⚠️ 加载失败，请刷新</p>`;
     });
   }
 }
