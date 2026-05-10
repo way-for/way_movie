@@ -7,8 +7,117 @@
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    .search-page { max-width:1280px; margin:0 auto; padding: calc(var(--nav-h) + 24px) 20px 80px; }
+
+    /* 搜索框区域 */
+    .search-hero {
+      margin-bottom: 28px;
+    }
+    .search-input-wrap {
+      display: flex; gap: 10px; align-items: center;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 6px 6px 6px 20px;
+      transition: border-color .2s;
+    }
+    .search-input-wrap:focus-within { border-color: var(--accent); }
+    .search-input-wrap input {
+      flex:1; background:none; border:none; color:var(--text);
+      font-size:1rem; outline:none; padding:8px 0;
+    }
+    .search-input-wrap input::placeholder { color:var(--text-muted); }
+    .search-input-wrap button {
+      background:var(--accent); color:#fff;
+      padding:10px 24px; border-radius:10px;
+      font-size:.9rem; font-weight:600;
+      transition:background .2s; white-space:nowrap;
+    }
+    .search-input-wrap button:hover { background:var(--accent-light); }
+    .search-clear {
+      background:none; color:var(--text-muted);
+      padding:8px; font-size:1rem;
+      transition:color .2s;
+    }
+    .search-clear:hover { color:var(--accent); }
+
+    /* 热门搜索 & 历史 */
+    .search-suggestions { margin-top:20px; }
+    .suggest-section { margin-bottom:20px; }
+    .suggest-label {
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:.82rem; color:var(--text-muted);
+      margin-bottom:10px; font-weight:500;
+    }
+    .suggest-label button {
+      background:none; color:var(--text-muted); font-size:.78rem;
+      transition:color .2s;
+    }
+    .suggest-label button:hover { color:var(--accent); }
+    .suggest-tags { display:flex; flex-wrap:wrap; gap:8px; }
+    .suggest-tag {
+      padding:6px 14px; border-radius:20px;
+      background:var(--bg3); color:var(--text-dim);
+      font-size:.83rem; cursor:pointer;
+      transition:all .2s; border:1px solid var(--border);
+    }
+    .suggest-tag:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .suggest-tag.history-tag {
+      display:flex; align-items:center; gap:6px;
+    }
+    .suggest-tag.history-tag .del-tag {
+      font-size:.7rem; color:var(--text-muted);
+      padding:0 2px; line-height:1;
+    }
+    .suggest-tag.history-tag .del-tag:hover { color:#e74c3c; }
+
+    /* 结果区域 */
+    .result-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:16px; flex-wrap:wrap; gap:10px;
+    }
+    .result-title { font-size:.95rem; color:var(--text-dim); }
+    .result-title strong { color:var(--accent); }
+    .result-title span { color:var(--text-muted); font-size:.82rem; margin-left:6px; }
+
+    /* 分类过滤 */
+    .type-filter { display:flex; gap:6px; flex-wrap:wrap; }
+    .type-btn {
+      padding:5px 14px; border-radius:20px;
+      background:var(--bg3); color:var(--text-dim);
+      font-size:.82rem; transition:all .2s;
+      border:1px solid var(--border);
+    }
+    .type-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    /* 排序 */
+    .sort-bar {
+      display:flex; align-items:center; gap:6px;
+      margin-bottom:16px;
+    }
+    .sort-label { font-size:.8rem; color:var(--text-muted); }
+    .sort-btn {
+      padding:4px 12px; border-radius:6px;
+      background:none; color:var(--text-muted);
+      font-size:.8rem; transition:all .2s;
+    }
+    .sort-btn.active { color:var(--accent); font-weight:600; }
+
+    /* 空结果 */
+    .empty-result {
+      text-align:center; padding:80px 20px;
+    }
+    .empty-result .empty-icon { font-size:4rem; margin-bottom:16px; }
+    .empty-result h3 { font-size:1.1rem; margin-bottom:8px; }
+    .empty-result p { color:var(--text-muted); font-size:.88rem; line-height:1.7; }
+    .empty-suggest { margin-top:20px; }
+    .empty-suggest p { color:var(--text-muted); font-size:.82rem; margin-bottom:10px; }
+
+    /* 加载更多 */
+    .load-more-wrap { text-align:center; margin-top:30px; }
+  </style>
 </head>
 <body>
+
   <header class="navbar" id="navbar">
     <div class="nav-inner">
       <a class="logo" href="../index.html">飘<span>雪</span></a>
@@ -19,30 +128,84 @@
         <a href="anime.html">动漫</a>
         <a href="variety.html">综艺</a>
       </nav>
-      <div class="nav-right">
-        <div id="userArea"></div>
-      </div>
-    </div>
-    <!-- 搜索栏始终展开 -->
-    <div class="search-bar open" id="searchBar">
-      <input type="text" id="searchInput" placeholder="搜索电影、剧集、动漫…" onkeydown="if(event.key==='Enter')doSearch()" />
-      <button onclick="doSearch()">搜索</button>
+      <div class="nav-right"><div id="userArea"></div></div>
     </div>
   </header>
 
-  <div style="margin-top:calc(var(--nav-h) + 60px); max-width:1280px; margin-left:auto; margin-right:auto; padding:0 20px 16px;">
-    <h2 id="searchTitle" style="font-size:1rem;color:var(--text-dim)">正在搜索…</h2>
-  </div>
+  <div class="search-page">
 
-  <div class="page-content" style="padding-top:0">
-    <div class="card-grid" id="contentGrid"></div>
-    <button class="load-more" id="loadMoreBtn" onclick="loadMore()" style="display:none">加载更多</button>
-    <div id="emptyTip" style="display:none;text-align:center;padding:60px 20px;color:var(--text-muted)">
-      <div style="font-size:3rem;margin-bottom:12px">🔍</div>
-      <div>没有找到相关内容，换个关键词试试</div>
+    <!-- 搜索框 -->
+    <div class="search-hero">
+      <div class="search-input-wrap">
+        <input type="text" id="searchInput" placeholder="搜索电影、剧集、动漫、综艺…"
+               onkeydown="if(event.key==='Enter')doSearch()"
+               oninput="onInputChange()" />
+        <button class="search-clear" id="clearBtn" onclick="clearInput()" style="display:none">✕</button>
+        <button onclick="doSearch()">搜索</button>
+      </div>
+
+      <!-- 建议区（无关键词时显示） -->
+      <div class="search-suggestions" id="suggestions">
+        <!-- 搜索历史 -->
+        <div class="suggest-section" id="historySection" style="display:none">
+          <div class="suggest-label">
+            <span>🕐 最近搜索</span>
+            <button onclick="clearSearchHistory()">清除</button>
+          </div>
+          <div class="suggest-tags" id="historyTags"></div>
+        </div>
+        <!-- 热门推荐 -->
+        <div class="suggest-section">
+          <div class="suggest-label"><span>🔥 热门搜索</span></div>
+          <div class="suggest-tags" id="hotTags"></div>
+        </div>
+      </div>
     </div>
+
+    <!-- 搜索结果 -->
+    <div id="resultArea" style="display:none">
+      <div class="result-header">
+        <div class="result-title">
+          搜索 "<strong id="resultKeyword"></strong>"
+          <span id="resultCount"></span>
+        </div>
+        <div class="type-filter" id="typeFilter">
+          <button class="type-btn active" data-type="" onclick="setTypeFilter('',this)">全部</button>
+          <button class="type-btn" data-type="1" onclick="setTypeFilter('1',this)">电影</button>
+          <button class="type-btn" data-type="2" onclick="setTypeFilter('2',this)">剧集</button>
+          <button class="type-btn" data-type="4" onclick="setTypeFilter('4',this)">动漫</button>
+          <button class="type-btn" data-type="3" onclick="setTypeFilter('3',this)">综艺</button>
+        </div>
+      </div>
+
+      <div class="sort-bar">
+        <span class="sort-label">排序：</span>
+        <button class="sort-btn active" onclick="setSort('default',this)">默认</button>
+        <button class="sort-btn" onclick="setSort('year',this)">最新</button>
+        <button class="sort-btn" onclick="setSort('score',this)">评分</button>
+      </div>
+
+      <div class="card-grid" id="resultGrid"></div>
+
+      <!-- 空结果 -->
+      <div class="empty-result" id="emptyResult" style="display:none">
+        <div class="empty-icon">🔍</div>
+        <h3>没有找到相关内容</h3>
+        <p>换个关键词试试，或者浏览下方热门内容</p>
+        <div class="empty-suggest">
+          <p>热门搜索：</p>
+          <div class="suggest-tags" id="emptyHotTags"></div>
+        </div>
+      </div>
+
+      <div class="load-more-wrap">
+        <button class="load-more" id="loadMoreBtn" onclick="loadMore()" style="display:none">加载更多</button>
+      </div>
+    </div>
+
   </div>
 
+  <!-- 弹窗 -->
   <div class="modal-overlay" id="loginModal">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()">✕</button>
@@ -61,32 +224,15 @@
       <h2>个人设置</h2>
       <div class="settings-avatar" id="settingsAvatar"></div>
       <div class="setting-item"><label>显示名称</label><input type="text" id="setNickname" placeholder="昵称" /></div>
-      <div class="setting-item">
-        <label>主题颜色</label>
-        <div class="color-picker">
-          <span class="color-dot" style="background:#e05c3a" data-color="#e05c3a" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#3a7de0" data-color="#3a7de0" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#3ac97d" data-color="#3ac97d" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#c93a9a" data-color="#c93a9a" onclick="pickColor(this)"></span>
-          <span class="color-dot" style="background:#e0b83a" data-color="#e0b83a" onclick="pickColor(this)"></span>
-        </div>
-      </div>
-      <div class="setting-item"><label>界面模式</label>
-        <div class="toggle-row">
-          <button id="themeDark" onclick="setTheme('dark')">🌙 深色</button>
-          <button id="themeLight" onclick="setTheme('light')">☀️ 浅色</button>
-        </div>
-      </div>
+      <div class="setting-item"><label>主题风格</label><div id="themePicker"></div></div>
       <div class="setting-item"><label>默认视频源</label>
         <select id="defaultSource">
-          <option value="0">线路一（推荐）</option>
-          <option value="1">线路二</option>
-          <option value="2">线路三</option>
-          <option value="3">线路四</option>
+          <option value="0">线路一</option><option value="1">线路二</option>
+          <option value="2">线路三</option><option value="3">线路四</option>
         </select>
       </div>
       <div class="settings-actions">
-        <button onclick="saveSettings()">保存设置</button>
+        <button onclick="saveSettings()">保存</button>
         <button class="btn-danger" onclick="doLogout()">退出登录</button>
       </div>
       <div class="watch-history"><h3>观看历史</h3><div id="historyList"></div><button class="btn-clear" onclick="clearHistory()">清除历史</button></div>
@@ -98,69 +244,298 @@
     <a href="../index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>首页</a>
     <a href="movie.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>电影</a>
     <a href="tv.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>剧集</a>
-    <a href="anime.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>动漫</a>
+    <a href="anime.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>动漫</a>
     <a href="search.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>搜索</a>
   </nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/auth.js"></script>
   <script>
+  // =====================================================
+  //  热门搜索词（固定）
+  // =====================================================
+  const HOT_WORDS = [
+    '哪吒','熊出没','复仇者联盟','流浪地球','封神',
+    '甄嬛传','三体','庆余年','漫长的季节','繁花',
+    '名侦探柯南','火影忍者','进击的巨人','鬼灭之刃',
+    '我是歌手','乘风破浪','中国好声音','奔跑吧',
+  ];
+
+  // =====================================================
+  //  搜索历史（localStorage）
+  // =====================================================
+  const HISTORY_KEY = 'mc_search_history';
+
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+  function addHistory(kw) {
+    let h = getHistory().filter(w => w !== kw);
+    h.unshift(kw);
+    h = h.slice(0, 12);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+  }
+  function removeHistory(kw) {
+    const h = getHistory().filter(w => w !== kw);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    renderSuggestions();
+  }
+  function clearSearchHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    renderSuggestions();
+    showToast('搜索历史已清除');
+  }
+
+  // =====================================================
+  //  渲染建议区
+  // =====================================================
+  function renderSuggestions() {
+    const hist = getHistory();
+    const histSection = document.getElementById('historySection');
+    const histTags    = document.getElementById('historyTags');
+    const hotTags     = document.getElementById('hotTags');
+
+    // 历史 - 用data-kw属性避免引号问题
+    if (hist.length) {
+      histSection.style.display = 'block';
+      histTags.innerHTML = hist.map(w => {
+        const safe = w.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        return `<span class="suggest-tag history-tag" data-kw="${safe}">
+          ${w.replace(/</g,'&lt;')}
+          <span class="del-tag" data-kw="${safe}">✕</span>
+        </span>`;
+      }).join('');
+      // 事件委托绑定
+      histTags.onclick = (e) => {
+        const delBtn = e.target.closest('.del-tag');
+        if (delBtn) { e.stopPropagation(); removeHistory(delBtn.dataset.kw); return; }
+        const tag = e.target.closest('.history-tag');
+        if (tag) quickSearch(tag.dataset.kw);
+      };
+    } else {
+      histSection.style.display = 'none';
+    }
+
+    // 热门 - 同样用data-kw
+    hotTags.innerHTML = HOT_WORDS.map(w =>
+      `<span class="suggest-tag" data-kw="${w}">${w}</span>`
+    ).join('');
+    hotTags.onclick = (e) => {
+      const tag = e.target.closest('.suggest-tag');
+      if (tag) quickSearch(tag.dataset.kw);
+    };
+
+    // 空结果页的热门
+    const emptyHot = document.getElementById('emptyHotTags');
+    if (emptyHot) {
+      emptyHot.innerHTML = HOT_WORDS.slice(0,8).map(w =>
+        `<span class="suggest-tag" data-kw="${w}">${w}</span>`
+      ).join('');
+      emptyHot.onclick = (e) => {
+        const tag = e.target.closest('.suggest-tag');
+        if (tag) quickSearch(tag.dataset.kw);
+      };
+    }
+  }
+
+  function quickSearch(kw) {
+    document.getElementById('searchInput').value = kw;
+    onInputChange();
+    doSearch();
+  }
+
+  // =====================================================
+  //  输入框交互
+  // =====================================================
+  function onInputChange() {
+    const kw = document.getElementById('searchInput').value.trim();
+    document.getElementById('clearBtn').style.display = kw ? 'block' : 'none';
+  }
+  function clearInput() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('clearBtn').style.display = 'none';
+    document.getElementById('searchInput').focus();
+    showSuggestions();
+  }
+
+  // =====================================================
+  //  显示/隐藏建议区
+  // =====================================================
+  function showSuggestions() {
+    document.getElementById('suggestions').style.display = 'block';
+    document.getElementById('resultArea').style.display  = 'none';
+  }
+  function hideSuggestions() {
+    document.getElementById('suggestions').style.display = 'none';
+    document.getElementById('resultArea').style.display  = 'block';
+  }
+
+  // =====================================================
+  //  搜索状态
+  // =====================================================
+  let allResults  = [];   // 完整结果
+  let filteredResults = []; // 过滤后
+  let currentType = '';   // 当前分类过滤
+  let currentSort = 'default';
+  let displayCount = 20;  // 当前显示条数
+  let currentKw = '';
+
+  // =====================================================
+  //  执行搜索
+  // =====================================================
+  async function doSearch() {
+    const kw = document.getElementById('searchInput').value.trim();
+    if (!kw) return;
+
+    currentKw = kw;
+    addHistory(kw);
+    hideSuggestions();
+
+    // 更新URL
+    history.replaceState(null, '', '?q=' + encodeURIComponent(kw));
+
+    document.getElementById('resultKeyword').textContent = kw;
+    document.getElementById('resultCount').textContent = '';
+    document.getElementById('loadMoreBtn').style.display = 'none';
+    document.getElementById('emptyResult').style.display = 'none';
+
+    // 骨架屏
+    const grid = document.getElementById('resultGrid');
+    grid.innerHTML = Array(12).fill(`
+      <div class="skeleton" style="border-radius:10px">
+        <div class="skeleton" style="aspect-ratio:2/3;border-radius:10px 10px 0 0"></div>
+        <div class="skeleton" style="height:12px;margin:10px 8px 4px;border-radius:4px"></div>
+        <div class="skeleton" style="height:10px;width:60%;margin:0 8px 10px;border-radius:4px"></div>
+      </div>`).join('');
+
+    try {
+      const data = await API.search(kw);
+      allResults = data.list || [];
+      displayCount = 20;
+      currentType = '';
+      currentSort = 'default';
+
+      // 重置过滤按钮
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.type-btn[data-type=""]').classList.add('active');
+      document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.sort-btn:first-child').classList.add('active');
+
+      applyFilterAndRender();
+    } catch(e) {
+      console.error(e);
+      grid.innerHTML = '';
+      document.getElementById('emptyResult').style.display = 'block';
+    }
+  }
+
+  // =====================================================
+  //  过滤 + 排序 + 渲染
+  // =====================================================
+  function applyFilterAndRender() {
+    // 分类过滤
+    filteredResults = currentType
+      ? allResults.filter(i => String(i.type_id) === currentType)
+      : allResults;
+
+    // 排序
+    if (currentSort === 'year') {
+      filteredResults = [...filteredResults].sort((a,b) =>
+        (parseInt(b.vod_year)||0) - (parseInt(a.vod_year)||0));
+    } else if (currentSort === 'score') {
+      filteredResults = [...filteredResults].sort((a,b) =>
+        (parseFloat(b.vod_score)||0) - (parseFloat(a.vod_score)||0));
+    }
+
+    const total = filteredResults.length;
+    document.getElementById('resultCount').textContent =
+      total ? `共 ${total} 条结果` : '';
+
+    const grid = document.getElementById('resultGrid');
+    const shown = filteredResults.slice(0, displayCount);
+
+    if (!shown.length) {
+      grid.innerHTML = '';
+      document.getElementById('emptyResult').style.display = 'block';
+      document.getElementById('loadMoreBtn').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('emptyResult').style.display = 'none';
+    grid.innerHTML = shown.map(buildCard).join('');
+    document.getElementById('loadMoreBtn').style.display =
+      filteredResults.length > displayCount ? 'block' : 'none';
+  }
+
+  function loadMore() {
+    displayCount += 20;
+    applyFilterAndRender();
+    // 滚到新内容
+    const grid = document.getElementById('resultGrid');
+    const cards = grid.querySelectorAll('.card');
+    if (cards.length > displayCount - 20) {
+      cards[displayCount - 20]?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+  }
+
+  function setTypeFilter(type, el) {
+    currentType = type;
+    displayCount = 20;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    applyFilterAndRender();
+  }
+
+  function setSort(sort, el) {
+    currentSort = sort;
+    displayCount = 20;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    applyFilterAndRender();
+  }
+
+  // =====================================================
+  //  卡片构建
+  // =====================================================
+  function buildCard(item) {
+    const id=item.vod_id, name=item.vod_name||'', pic=item.vod_pic||'';
+    const year=item.vod_year||'', score=item.vod_score||'';
+    const type=item.type_name||'', tag=item.vod_remarks||'';
+    return `<div class="card" onclick="location.href='detail.html?id=${id}'">
+      <div class="card-thumb">
+        ${pic?`<img src="${pic}" loading="lazy" onerror="this.style.display='none'">`:''}
+        ${!pic?`<div class="no-img">🎬</div>`:''}
+        ${score?`<span class="card-score">⭐${score}</span>`:''}
+        ${tag?`<span class="card-tag">${tag}</span>`:''}
+        <div class="card-play-overlay">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-title">${name}</div>
+        <div class="card-meta">${[year,type].filter(Boolean).join(' · ')}</div>
+      </div>
+    </div>`;
+  }
+
+  // =====================================================
+  //  初始化
+  // =====================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    renderSuggestions();
+
     const urlParams = new URLSearchParams(location.search);
-    let keyword = urlParams.get('q') || '';
-    let currentPage = 1;
-    let allResults = [];
-
-    function buildCard(item) {
-      const id=item.vod_id, name=item.vod_name||'', pic=item.vod_pic||'';
-      const year=item.vod_year||'', score=item.vod_score||'', type=item.type_name||'';
-      return `
-        <div class="card" onclick="location.href='detail.html?id=${id}'">
-          <div class="card-thumb">
-            ${pic?`<img src="${pic}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\"no-img\\">🎬</div>'">`:`<div class="no-img">🎬</div>`}
-            ${score?`<span class="card-score">⭐${score}</span>`:''}
-            ${type?`<span class="card-tag">${type}</span>`:''}
-            <div class="card-play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M8 5v14l11-7z"/></svg></div>
-          </div>
-          <div class="card-info">
-            <div class="card-title">${name}</div>
-            <div class="card-meta">${year}</div>
-          </div>
-        </div>`;
+    const q = urlParams.get('q');
+    if (q) {
+      document.getElementById('searchInput').value = q;
+      onInputChange();
+      doSearch();
+    } else {
+      showSuggestions();
+      document.getElementById('searchInput').focus();
     }
-
-    async function doSearch() {
-      const input = document.getElementById('searchInput');
-      const kw = input?.value?.trim() || keyword;
-      if (!kw) return;
-      keyword = kw;
-      history.replaceState(null,'','?q='+encodeURIComponent(kw));
-      currentPage = 1;
-      document.getElementById('searchTitle').innerHTML =
-        `搜索 "<span style="color:var(--accent)">${kw}</span>" 的结果`;
-      document.getElementById('contentGrid').innerHTML = `
-        <div class="skeleton" style="border-radius:10px"><div class="skeleton" style="aspect-ratio:2/3;border-radius:10px 10px 0 0"></div></div>`.repeat(8);
-      document.getElementById('emptyTip').style.display='none';
-
-      try {
-        const data = await API.search(kw);
-        allResults = data.list || [];
-        document.getElementById('contentGrid').innerHTML =
-          allResults.length ? allResults.map(buildCard).join('') : '';
-        document.getElementById('emptyTip').style.display = allResults.length ? 'none' : 'block';
-        document.getElementById('loadMoreBtn').style.display = allResults.length>=20 ? '' : 'none';
-      } catch(e) {
-        document.getElementById('contentGrid').innerHTML =
-          '<p style="color:var(--text-muted);grid-column:1/-1;padding:20px">⚠️ 搜索失败，请重试</p>';
-      }
-    }
-
-    // 初始化
-    document.addEventListener('DOMContentLoaded', () => {
-      if (keyword) {
-        document.getElementById('searchInput').value = keyword;
-        doSearch();
-      }
-    });
+  });
   </script>
 </body>
 </html>

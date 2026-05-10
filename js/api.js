@@ -76,16 +76,18 @@ const API = (() => {
 
   async function getHomeData() {
     _lockedSrc = null;
-    // 先找一个可用源，然后用同一个源查所有分类，保证ID一致
-    const testData = await req({ ac:'videolist', t:'2', pg:1 });
-    const src = testData._src ?? 0;
-    _lockedSrc = src;
+    // 各分类独立请求，允许Worker自动换源找有数据的
+    // 不强制lock，确保每个分类都能找到内容
     const [a,b,c,d] = await Promise.allSettled([
-      req({ ac:'videolist', t:'1', pg:1 }, src),
-      req({ ac:'videolist', t:'2', pg:1 }, src),
-      req({ ac:'videolist', t:'4', pg:1 }, src),
-      req({ ac:'videolist', t:'3', pg:1 }, src),
+      req({ ac:'videolist', t:'1', pg:1 }),   // 电影
+      req({ ac:'videolist', t:'2', pg:1 }),   // 剧集
+      req({ ac:'videolist', t:'4', pg:1 }),   // 动漫
+      req({ ac:'videolist', t:'3', pg:1 }),   // 综艺
     ]);
+    // 用剧集的源作为后续详情查询的默认源（剧集数据最丰富最稳定）
+    if (b.status==='fulfilled' && b.value?._src !== undefined) {
+      _lockedSrc = b.value._src;
+    }
     return {
       movie:   a.status==='fulfilled' ? (a.value?.list||[]) : [],
       tv:      b.status==='fulfilled' ? (b.value?.list||[]) : [],

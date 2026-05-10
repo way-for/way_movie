@@ -641,3 +641,15 @@ footer{
 .mobile-nav a.active,.mobile-nav a:hover{color:var(--accent)}
 .mobile-nav svg{width:20px;height:20px}
 @media(max-width:768px){footer{padding-bottom:72px}}
+
+/* 集数分页按钮 */
+.ep-pages { margin-bottom: 8px; }
+.ep-page-btn {
+  padding: 4px 12px; border-radius: 6px;
+  background: var(--bg3); color: var(--text-dim);
+  font-size: .78rem; transition: all var(--transition);
+  border: 1px solid var(--border);
+}
+.ep-page-btn.active, .ep-page-btn:hover {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}

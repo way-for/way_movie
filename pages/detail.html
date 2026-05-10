@@ -8,38 +8,232 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
+    /* ── 播放页专属样式 ── */
+    .detail-wrap {
+      max-width: 1280px; margin: 0 auto;
+      padding: calc(var(--nav-h) + 16px) 20px 80px;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      grid-template-rows: auto;
+      gap: 24px;
+    }
+    @media(max-width:960px){ .detail-wrap { grid-template-columns:1fr; padding:calc(var(--nav-h) + 12px) 12px 80px; } }
+
+    /* 播放器容器 */
+    .player-main { min-width: 0; }
+    .player-box {
+      width: 100%; aspect-ratio: 16/9;
+      background: #000; border-radius: var(--radius-lg);
+      position: relative; overflow: visible;
+    }
+    .player-box iframe {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; border: none;
+      border-radius: var(--radius-lg);
+      display: none;
+    }
+
+    /* 加载动画 */
+    .player-loading {
+      position: absolute; inset: 0;
+      background: #0a0a0f;
+      border-radius: var(--radius-lg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; color: var(--text-dim);
+    }
+    .player-loading .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    .player-loading p { font-size: .88rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 换线路侧边Tab */
+    .switch-tab {
+      position: absolute; right: -34px; top: 50%;
+      transform: translateY(-50%);
+      z-index: 20; display: none; cursor: pointer;
+    }
+    .switch-tab-inner {
+      width: 30px; padding: 12px 5px;
+      border-radius: 0 8px 8px 0;
+      background: rgba(20,20,28,0.88);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-left: none;
+      writing-mode: vertical-rl; letter-spacing: 3px;
+      color: rgba(255,255,255,0.65); font-size: 11px; font-weight: 500;
+      transition: all .2s; text-align: center;
+      backdrop-filter: blur(8px);
+      box-shadow: 3px 0 14px rgba(0,0,0,0.35);
+    }
+    .switch-tab:hover .switch-tab-inner {
+      background: var(--accent); color: #fff;
+    }
+    .switch-tab-tip {
+      display: none; position: absolute;
+      left: 34px; top: 50%; transform: translateY(-50%);
+      background: rgba(20,20,28,0.92); color: #fff;
+      font-size: 12px; padding: 6px 12px; border-radius: 6px;
+      white-space: nowrap; pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+      writing-mode: horizontal-tb; letter-spacing: 0;
+    }
+    .switch-tab-tip::before {
+      content: ''; position: absolute;
+      right: 100%; top: 50%; transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: rgba(20,20,28,0.92);
+    }
+    .switch-tab:hover .switch-tab-tip { display: block; }
+
+    /* 自动下一集提示条 */
+    .next-ep-bar {
+      display: none; align-items: center; justify-content: space-between;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 16px; margin-top: 12px;
+      font-size: .88rem;
+    }
+    .next-ep-bar.show { display: flex; }
+    .next-ep-bar .next-info { color: var(--text-dim); }
+    .next-ep-bar .next-info strong { color: var(--text); }
+    .next-ep-bar .next-actions { display: flex; gap: 8px; }
+    .next-ep-bar button {
+      padding: 6px 16px; border-radius: 6px;
+      font-size: .82rem; font-weight: 500;
+    }
+    .btn-next-play { background: var(--accent); color: #fff; transition: background .2s; }
+    .btn-next-play:hover { background: var(--accent-light); }
+    .btn-next-cancel { background: var(--bg3); color: var(--text-dim); }
+    .next-countdown {
+      display: inline-block; width: 20px; text-align: center;
+      color: var(--accent); font-weight: 700;
+    }
+
+    /* 标题信息区 */
+    .detail-info { margin-top: 16px; }
+    .detail-title-row {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+      flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .detail-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem,3vw,1.5rem);
+      font-weight: 700; line-height: 1.3;
+    }
     .fav-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: var(--bg3); color: var(--text-dim);
       padding: 8px 18px; border-radius: 8px;
-      font-size: 0.88rem; font-weight: 500;
-      transition: all var(--transition);
+      font-size: .88rem; font-weight: 500;
+      transition: all .2s; flex-shrink: 0;
     }
     .fav-btn:hover, .fav-btn.active { background: var(--accent); color: #fff; }
-    .info-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
-      gap: 8px; margin-bottom: 16px;
+
+    /* 信息标签 */
+    .info-tags {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 14px;
     }
-    .info-item { font-size: 0.82rem; }
-    .info-item .label { color: var(--text-muted); margin-bottom: 2px; }
-    .info-item .val { color: var(--text-dim); }
-    .player-loading {
-      position: absolute; inset: 0; background: #000;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      color: var(--text-dim); gap: 12px; font-size: 0.9rem;
+    .info-tag {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--bg3); border-radius: 6px;
+      padding: 4px 12px; font-size: .8rem;
     }
-    .spinner {
-      width: 36px; height: 36px; border: 3px solid var(--border);
-      border-top-color: var(--accent); border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .info-tag .tag-label { color: var(--text-muted); }
+    .info-tag .tag-val { color: var(--text-dim); font-weight: 500; }
+
+    /* 简介 */
+    .detail-desc {
+      color: var(--text-dim); font-size: .88rem;
+      line-height: 1.85; margin-bottom: 20px;
+      position: relative;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .source-section { margin-bottom: 20px; }
-    .source-section h3 { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 8px; }
+    .detail-desc.collapsed {
+      display: -webkit-box; -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .desc-toggle {
+      background: none; color: var(--accent);
+      font-size: .82rem; margin-top: 4px;
+      display: block;
+    }
+
+    /* 线路与集数 */
+    .episode-wrap { margin-top: 4px; }
+    .source-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .source-tab {
+      padding: 6px 16px; border-radius: 6px;
+      background: var(--bg3); color: var(--text-dim);
+      font-size: .85rem; font-weight: 500;
+      transition: all .2s; border: 1px solid var(--border);
+    }
+    .source-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .source-section { display: none; }
+    .source-section.active { display: block; }
+    .ep-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px; flex-wrap: wrap; gap: 8px;
+    }
+    .ep-label { font-size: .82rem; color: var(--text-muted); }
+    .ep-pages { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .ep-page-btn {
+      padding: 3px 10px; border-radius: 5px;
+      background: var(--bg3); color: var(--text-muted);
+      font-size: .75rem; transition: all .2s;
+      border: 1px solid var(--border);
+    }
+    .ep-page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .episodes {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      max-height: 200px; overflow-y: auto;
+      padding-right: 2px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .ep-btn {
+      padding: 6px 14px; border-radius: 6px;
+      background: var(--bg3); color: var(--text-dim);
+      font-size: .82rem; transition: all .2s;
+    }
+    .ep-btn:hover { background: var(--border); color: var(--text); }
+    .ep-btn.active { background: var(--accent); color: #fff; }
+    .ep-btn.watched {
+      background: var(--bg3); color: var(--text-muted);
+      text-decoration: line-through;
+      opacity: .65;
+    }
+    .ep-btn.watched.active { background: var(--accent); color: #fff; opacity: 1; text-decoration: none; }
+
+    /* 侧边栏 */
+    .player-sidebar { min-width: 0; }
+    .sidebar-title { font-size: .95rem; font-weight: 600; margin-bottom: 12px; }
+    .sidebar-card {
+      display: flex; gap: 10px; padding: 8px;
+      border-radius: var(--radius); cursor: pointer;
+      transition: background .2s; margin-bottom: 4px;
+    }
+    .sidebar-card:hover { background: var(--bg3); }
+    .sidebar-thumb {
+      width: 64px; aspect-ratio: 2/3;
+      border-radius: 6px; overflow: hidden;
+      background: var(--bg3); flex-shrink: 0;
+    }
+    .sidebar-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .sidebar-info .s-title { font-size: .85rem; font-weight: 500; margin-bottom: 3px; }
+    .sidebar-info .s-meta { font-size: .75rem; color: var(--text-muted); }
+    @media(max-width:960px){
+      .player-sidebar { border-top: 1px solid var(--border); padding-top: 20px; }
+    }
   </style>
 </head>
 <body>
+
   <header class="navbar" id="navbar">
     <div class="nav-inner">
       <a class="logo" href="../index.html">飘<span>雪</span></a>
@@ -59,327 +253,471 @@
     </div>
   </header>
 
-  <div class="player-wrap" id="playerWrap">
-    <!-- 左侧主区域 -->
+  <div class="detail-wrap">
+    <!-- 左：播放器+信息 -->
     <div class="player-main">
+
       <!-- 播放器 -->
       <div class="player-box" id="playerBox">
         <div class="player-loading" id="playerLoading">
           <div class="spinner"></div>
-          <span>正在加载视频…</span>
+          <p id="loadingTip">正在加载视频…</p>
         </div>
-        <iframe id="playerFrame" allowfullscreen style="display:none;width:100%;height:100%;border:none;" allow="autoplay; fullscreen"></iframe>
-        <!-- 换播放器：默认只显示图标，hover后显示文字 -->
-        <div id="switchPlayerBtn" style="
-          position:absolute;bottom:12px;right:12px;z-index:10;
-          display:none;cursor:pointer;
-        " onclick="">
-          <div class="switch-icon">🔄</div>
-          <div class="switch-label">换一条线路</div>
+        <iframe id="playerFrame"
+          allowfullscreen
+          allow="autoplay; fullscreen; picture-in-picture">
+        </iframe>
+        <!-- 换线路侧边Tab -->
+        <div class="switch-tab" id="switchTab" onclick="switchNextPlayer()">
+          <div class="switch-tab-inner">换线路</div>
+          <div class="switch-tab-tip">🔄 点击切换播放线路</div>
         </div>
-        <style>
-          .switch-icon{
-            width:32px;height:32px;border-radius:50%;
-            background:rgba(0,0,0,0.55);
-            display:flex;align-items:center;justify-content:center;
-            font-size:14px;transition:all .2s;
-            border:1px solid rgba(255,255,255,0.2);
-          }
-          .switch-label{
-            display:none;position:absolute;bottom:36px;right:0;
-            background:rgba(0,0,0,0.8);color:#fff;
-            font-size:12px;padding:4px 10px;border-radius:5px;
-            white-space:nowrap;
-          }
-          #switchPlayerBtn:hover .switch-icon{ background:rgba(224,92,58,0.85); }
-          #switchPlayerBtn:hover .switch-label{ display:block; }
-        </style>
+      </div>
+
+      <!-- 自动下一集提示 -->
+      <div class="next-ep-bar" id="nextEpBar">
+        <div class="next-info">
+          下一集：<strong id="nextEpName"></strong>
+          &nbsp;将在 <span class="next-countdown" id="nextCountdown">5</span> 秒后自动播放
+        </div>
+        <div class="next-actions">
+          <button class="btn-next-play" onclick="playNextNow()">立即播放</button>
+          <button class="btn-next-cancel" onclick="cancelNext()">取消</button>
+        </div>
       </div>
 
       <!-- 标题信息 -->
-      <div style="margin-top:16px">
-        <div id="titleArea"></div>
-      </div>
+      <div class="detail-info" id="titleArea"></div>
 
-      <!-- 线路 & 集数 -->
-      <div id="episodeArea"></div>
+      <!-- 线路&集数 -->
+      <div class="episode-wrap" id="episodeArea"></div>
+
     </div>
 
-    <!-- 右侧推荐 -->
-    <div class="player-sidebar" id="sidebarArea">
-      <h3>相关推荐</h3>
+    <!-- 右：相关推荐 -->
+    <div class="player-sidebar">
+      <div class="sidebar-title">相关推荐</div>
       <div id="sidebarList"></div>
     </div>
   </div>
 
-  <!-- 登录弹窗 -->
+  <!-- 弹窗 -->
   <div class="modal-overlay" id="loginModal">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()">✕</button>
       <h2>登录 / 注册</h2>
-      <p class="modal-sub">登录后可保存观看历史、收藏和偏好设置</p>
-      <input type="text" id="inputUsername" placeholder="用户名" maxlength="16" />
-      <input type="password" id="inputPassword" placeholder="密码" maxlength="32" />
+      <p class="modal-sub">登录后可保存观看历史和收藏</p>
+      <input type="text" id="inputUsername" placeholder="用户名" maxlength="16"/>
+      <input type="password" id="inputPassword" placeholder="密码" maxlength="32"/>
       <div class="modal-btns">
         <button onclick="doLogin()">登录</button>
         <button class="btn-reg" onclick="doRegister()">注册</button>
       </div>
     </div>
   </div>
-
   <div class="modal-overlay" id="settingsModal">
     <div class="modal settings-modal">
       <button class="modal-close" onclick="closeSettings()">✕</button>
       <h2>个人设置</h2>
       <div class="settings-avatar" id="settingsAvatar"></div>
-      <div class="setting-item">
-        <label>显示名称</label>
-        <input type="text" id="setNickname" placeholder="昵称" maxlength="12" />
-      </div>
-      <div class="setting-item">
-        <label>主题风格</label>
-        <div id="themePicker"></div>
-      </div>
-      
-      <div class="setting-item">
-        <label>默认视频源</label>
+      <div class="setting-item"><label>显示名称</label><input type="text" id="setNickname" placeholder="昵称"/></div>
+      <div class="setting-item"><label>主题风格</label><div id="themePicker"></div></div>
+      <div class="setting-item"><label>默认视频源</label>
         <select id="defaultSource">
-          <option value="0">线路一（推荐）</option>
-          <option value="1">线路二</option>
-          <option value="2">线路三</option>
-          <option value="3">线路四</option>
+          <option value="0">线路一</option><option value="1">线路二</option>
+          <option value="2">线路三</option><option value="3">线路四</option>
         </select>
       </div>
       <div class="settings-actions">
-        <button onclick="saveSettings()">保存设置</button>
+        <button onclick="saveSettings()">保存</button>
         <button class="btn-danger" onclick="doLogout()">退出登录</button>
       </div>
-      <div class="watch-history">
-        <h3>观看历史</h3>
-        <div id="historyList"></div>
-        <button class="btn-clear" onclick="clearHistory()">清除历史</button>
-      </div>
+      <div class="watch-history"><h3>观看历史</h3><div id="historyList"></div><button class="btn-clear" onclick="clearHistory()">清除历史</button></div>
     </div>
   </div>
-
   <div class="toast" id="toast"></div>
 
   <script src="../js/api.js"></script>
   <script src="../js/auth.js"></script>
   <script>
-    let currentDetail = null;
-    let currentSourceGroup = 0;
-    let currentEpIdx = 0;
+  // ─────────────────────────────────────────
+  //  状态变量
+  // ─────────────────────────────────────────
+  let currentDetail      = null;
+  let currentSourceGroup = 0;
+  let currentEpIdx       = 0;
+  let playerIdx          = 0;
+  let nextTimer          = null;
+  const EP_PAGE          = 100;
+  const WORKER           = 'https://way-movie.sir-way105.workers.dev';
 
-    const urlParams = new URLSearchParams(location.search);
-    const vodId = urlParams.get('id');
+  const vodId = new URLSearchParams(location.search).get('id');
 
-    async function loadDetail() {
-      if (!vodId) { showToast('缺少视频ID'); return; }
+  // ─────────────────────────────────────────
+  //  播放进度存储
+  // ─────────────────────────────────────────
+  function saveProgress(id, gi, ei) {
+    try { localStorage.setItem('mc_prog_'+id, JSON.stringify({gi, ei, t: Date.now()})); } catch(e){}
+  }
+  function loadProgress(id) {
+    try { return JSON.parse(localStorage.getItem('mc_prog_'+id) || 'null'); } catch(e){ return null; }
+  }
 
-      try {
-        const detail = await API.getDetail(vodId);
-        currentDetail = detail;
+  // ─────────────────────────────────────────
+  //  加载详情
+  // ─────────────────────────────────────────
+  async function loadDetail() {
+    if (!vodId) { showErrMsg('缺少视频ID'); return; }
+    try {
+      const detail = await API.getDetail(vodId);
+      currentDetail = detail;
 
-        // 记录历史
-        Auth.addHistory({
-          id:   detail.vod_id,
-          name: detail.vod_name,
-          pic:  detail.vod_pic,
-          type: detail.type_name,
-        });
+      document.title = (detail.vod_name || '播放') + ' - 飘雪';
 
-        document.title = (detail.vod_name || '播放') + ' - 飘雪';
-        renderTitleArea(detail);
-        renderEpisodeArea(detail);
-        loadSidebar(detail);
-
-        // 自动播放第一集
-        if (detail._urls?.length > 0) {
-          const epUrl = detail._urls[currentSourceGroup]?.episodes[0]?.url;
-          if (epUrl) playEpisode(currentSourceGroup, 0);
-        }
-
-      } catch (e) {
-        console.error(e);
-        document.getElementById('playerBox').innerHTML =
-          `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:12px;padding:20px;text-align:center">
-            <div style="font-size:2rem">⚠️</div>
-            <div>视频加载失败，请检查网络或刷新重试</div>
-            <button onclick="location.reload()" style="background:var(--accent);color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer">重试</button>
-          </div>`;
-      }
-    }
-
-    function renderTitleArea(detail) {
-      const isFav = Auth.isFavorite(detail.vod_id);
-      const desc = (detail.vod_content || detail.vod_blurb || '').replace(/<[^>]+>/g, '');
-      document.getElementById('titleArea').innerHTML = `
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <h1 class="player-title">${detail.vod_name || ''}</h1>
-          <button class="fav-btn ${isFav?'active':''}" id="favBtn" onclick="toggleFav()">
-            ${isFav ? '❤️ 已收藏' : '🤍 收藏'}
-          </button>
-        </div>
-        <div class="info-grid">
-          ${detail.vod_year    ? `<div class="info-item"><div class="label">年份</div><div class="val">${detail.vod_year}</div></div>` : ''}
-          ${detail.vod_area    ? `<div class="info-item"><div class="label">地区</div><div class="val">${detail.vod_area}</div></div>` : ''}
-          ${detail.vod_score   ? `<div class="info-item"><div class="label">评分</div><div class="val">⭐ ${detail.vod_score}</div></div>` : ''}
-          ${detail.vod_director? `<div class="info-item"><div class="label">导演</div><div class="val">${detail.vod_director}</div></div>` : ''}
-          ${detail.vod_actor   ? `<div class="info-item"><div class="label">主演</div><div class="val">${detail.vod_actor.split(',').slice(0,3).join(' / ')}</div></div>` : ''}
-          ${detail.type_name   ? `<div class="info-item"><div class="label">类型</div><div class="val">${detail.type_name}</div></div>` : ''}
-        </div>
-        ${desc ? `<p class="player-desc">${desc}</p>` : ''}
-      `;
-    }
-
-    function renderEpisodeArea(detail) {
-      const groups = detail._urls || [];
-      if (!groups.length) {
-        document.getElementById('episodeArea').innerHTML =
-          `<p style="color:var(--text-muted);font-size:0.85rem">暂无播放源</p>`;
-        return;
-      }
-
-      const tabsHtml = groups.map((g, i) =>
-        `<button class="source-tab ${i===0?'active':''}" onclick="switchSource(${i})" id="srcTab${i}">${g.name}</button>`
-      ).join('');
-
-      const epGroups = groups.map((g, gi) => `
-        <div class="source-section" id="epGroup${gi}" style="${gi===0?'':'display:none'}">
-          <div class="episode-label">${g.name} · 共 ${g.episodes.length} 集</div>
-          <div class="episodes">
-            ${g.episodes.map((ep, ei) =>
-              `<button class="ep-btn ${gi===0&&ei===0?'active':''}" id="ep_${gi}_${ei}" onclick="playEpisode(${gi},${ei})">${ep.name}</button>`
-            ).join('')}
-          </div>
-        </div>
-      `).join('');
-
-      document.getElementById('episodeArea').innerHTML = `
-        <div class="source-tabs">${tabsHtml}</div>
-        ${epGroups}
-      `;
-    }
-
-    function switchSource(gi) {
-      currentSourceGroup = gi;
-      // 更新tab样式
-      document.querySelectorAll('.source-tab').forEach((t, i) => t.classList.toggle('active', i===gi));
-      // 显示对应集数组
-      document.querySelectorAll('[id^="epGroup"]').forEach((el, i) => {
-        el.style.display = i===gi ? '' : 'none';
-      });
-      // 自动播放当前组第一集
-      playEpisode(gi, 0);
-    }
-
-    function playEpisode(gi, ei) {
-      const groups = currentDetail?._urls || [];
-      const ep = groups[gi]?.episodes[ei];
-      if (!ep || !ep.url) { showToast('该集暂无播放地址'); return; }
-
-      currentEpIdx = ei;
-      currentSourceGroup = gi;
-
-      // 更新集数按钮高亮
-      document.querySelectorAll(`[id^="ep_${gi}_"]`).forEach((btn, i) => {
-        btn.classList.toggle('active', i === ei);
+      Auth.addHistory({
+        id: detail.vod_id, name: detail.vod_name,
+        pic: detail.vod_pic, type: detail.type_name,
       });
 
-      const loading = document.getElementById('playerLoading');
-      const frame   = document.getElementById('playerFrame');
-      if (loading) loading.style.display = 'flex';
-      if (frame)   { frame.style.display = 'none'; frame.src = ''; }
+      renderTitle(detail);
+      renderEpisodes(detail);
+      loadSidebar(detail);
 
-      const rawUrl = ep.url;
+      // 恢复上次播放进度
+      const prog = loadProgress(vodId);
+      const startGi = prog?.gi ?? 0;
+      const startEi = prog?.ei ?? 0;
 
-      // 备用公共解析播放器列表（依次尝试）
-      const players = [
-        `https://way-movie.sir-way105.workers.dev/player?url=${encodeURIComponent(rawUrl)}`,
-        `https://jx.jsonplayer.com/player/?url=${encodeURIComponent(rawUrl)}`,
-        `https://jx.xmflv.com/?url=${encodeURIComponent(rawUrl)}`,
-        `https://jx.m3u8play.com/?url=${encodeURIComponent(rawUrl)}`,
-      ];
-
-      let playerIdx = 0;
-
-      function tryPlayer(idx) {
-        if (idx >= players.length) {
-          if (loading) loading.style.display = 'none';
-          showToast('所有播放器均无法加载，请换一个线路');
-          return;
-        }
-        if (frame) {
-          frame.src = players[idx];
-          frame.style.display = 'block';
-          if (loading) loading.style.display = 'none';
+      if (detail._urls?.length > 0) {
+        playEpisode(startGi, startEi, true);
+        if (prog && (prog.gi > 0 || prog.ei > 0)) {
+          showToast(`已恢复到第 ${startEi + 1} 集`);
         }
       }
+    } catch(e) {
+      console.error(e);
+      showErrMsg('视频加载失败，请刷新重试');
+    }
+  }
 
-      // 绑定换线路按钮
-      const switchBtn = document.getElementById('switchPlayerBtn');
-      if (switchBtn) {
-        switchBtn.onclick = () => {
-          playerIdx = (playerIdx + 1) % players.length;
-          showToast('正在切换到备用线路 ' + (playerIdx + 1) + '...');
-          if (frame) { frame.style.display='none'; frame.src='about:blank'; }
-          if (loading) loading.style.display='flex';
-          setTimeout(() => tryPlayer(playerIdx), 400);
-        };
-      }
+  function showErrMsg(msg) {
+    document.getElementById('playerLoading').innerHTML = `
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:2.5rem;margin-bottom:12px">⚠️</div>
+        <p style="color:var(--text-dim);margin-bottom:16px">${msg}</p>
+        <button onclick="location.reload()" style="background:var(--accent);color:#fff;padding:8px 20px;border-radius:8px">重试</button>
+      </div>`;
+  }
 
-      // 显示换播放器按钮
-      const sb = document.getElementById('switchPlayerBtn');
-      if (sb) sb.style.display = 'block';
-      setTimeout(() => tryPlayer(0), 300);
+  // ─────────────────────────────────────────
+  //  渲染标题信息
+  // ─────────────────────────────────────────
+  function renderTitle(d) {
+    const isFav = Auth.isFavorite(d.vod_id);
+    const rawDesc = (d.vod_blurb||'').trim() || (d.vod_content||'').trim() || (d.vod_introduce||'').trim() || '';
+    const desc = rawDesc.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').trim();
+
+    const tags = [
+      d.vod_year     && { label:'年份', val: d.vod_year },
+      d.vod_area     && { label:'地区', val: d.vod_area },
+      d.vod_score && parseFloat(d.vod_score) > 0
+                     && { label:'评分', val: `⭐ ${d.vod_score}` },
+      d.type_name    && { label:'类型', val: d.type_name },
+      d.vod_director && { label:'导演', val: d.vod_director.split(',')[0] },
+      d.vod_actor    && { label:'主演', val: d.vod_actor.split(',').slice(0,3).join(' / ') },
+    ].filter(Boolean);
+
+    document.getElementById('titleArea').innerHTML = `
+      <div class="detail-title-row">
+        <h1 class="detail-title">${d.vod_name || ''}</h1>
+        <button class="fav-btn ${isFav?'active':''}" id="favBtn" onclick="toggleFav()">
+          ${isFav ? '❤️ 已收藏' : '🤍 收藏'}
+        </button>
+      </div>
+      ${tags.length ? `<div class="info-tags">${tags.map(t=>`
+        <div class="info-tag">
+          <span class="tag-label">${t.label}</span>
+          <span class="tag-val">${t.val}</span>
+        </div>`).join('')}</div>` : ''}
+      ${desc ? `
+        <p class="detail-desc collapsed" id="descText">${desc}</p>
+        <button class="desc-toggle" id="descToggle" onclick="toggleDesc()">展开简介 ▾</button>
+      ` : ''}
+    `;
+  }
+
+  let descExpanded = false;
+  function toggleDesc() {
+    descExpanded = !descExpanded;
+    const el = document.getElementById('descText');
+    const btn = document.getElementById('descToggle');
+    if (el) el.classList.toggle('collapsed', !descExpanded);
+    if (btn) btn.textContent = descExpanded ? '收起简介 ▴' : '展开简介 ▾';
+  }
+
+  // ─────────────────────────────────────────
+  //  渲染集数
+  // ─────────────────────────────────────────
+  function renderEpisodes(d) {
+    const groups = d._urls || [];
+    const area = document.getElementById('episodeArea');
+    if (!groups.length) {
+      area.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;margin-top:8px">暂无播放源</p>';
+      return;
     }
 
-    function toggleFav() {
-      if (!Auth.isLoggedIn()) { openLogin(); return; }
-      const item = {
-        id:   currentDetail.vod_id,
-        name: currentDetail.vod_name,
-        pic:  currentDetail.vod_pic,
-      };
-      const added = Auth.addFavorite(item);
-      const btn = document.getElementById('favBtn');
-      if (btn) {
-        btn.className = `fav-btn ${added?'active':''}`;
-        btn.textContent = added ? '❤️ 已收藏' : '🤍 收藏';
-      }
-      showToast(added ? '已添加收藏' : '已取消收藏');
-    }
+    const tabsHtml = groups.map((g,i) =>
+      `<button class="source-tab ${i===0?'active':''}" onclick="switchSource(${i})" id="srcTab${i}">
+        ${g.name || '线路'+(i+1)}
+      </button>`
+    ).join('');
 
-    async function loadSidebar(detail) {
-      const el = document.getElementById('sidebarList');
-      if (!el) return;
-      try {
-        const data = await API.getList(
-          detail.type_id === '1' ? 'movie' : detail.type_id === '2' ? 'tv' : detail.type_id === '4' ? 'anime' : 'variety',
-          1
-        );
-        const items = (data.list || []).filter(i => i.vod_id !== detail.vod_id).slice(0, 10);
-        el.innerHTML = items.map(i => `
-          <div class="sidebar-card" onclick="location.href='detail.html?id=${i.vod_id}'">
-            <div class="sidebar-thumb">
-              ${i.vod_pic ? `<img src="${i.vod_pic}" loading="lazy" onerror="this.style.display='none'">` : ''}
-            </div>
-            <div class="sidebar-info">
-              <div class="title">${i.vod_name || ''}</div>
-              <div class="meta">${i.vod_year || ''} ${i.vod_remarks || ''}</div>
-            </div>
-          </div>`).join('');
-      } catch(e) {
-        el.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem">推荐加载失败</p>';
-      }
-    }
+    const groupsHtml = groups.map((g,gi) => {
+      return `<div class="source-section ${gi===0?'active':''}" id="epGroup${gi}">
+        ${buildEpGroup(g, gi, 0)}
+      </div>`;
+    }).join('');
 
-    function toDetail(id) { location.href = 'detail.html?id=' + id; }
+    area.innerHTML = `
+      <div class="source-tabs">${tabsHtml}</div>
+      ${groupsHtml}
+    `;
+  }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      loadDetail();
+  function buildEpGroup(g, gi, page) {
+    const total = g.episodes.length;
+    const pageCount = Math.ceil(total / EP_PAGE);
+    const start = page * EP_PAGE;
+    const prog  = loadProgress(vodId);
+
+    const pageHtml = pageCount > 1
+      ? `<div class="ep-pages">${Array.from({length:pageCount},(_,pi)=>`
+          <button class="ep-page-btn ${pi===page?'active':''}"
+            onclick="switchEpPage(${gi},${pi})">${pi*EP_PAGE+1}-${Math.min((pi+1)*EP_PAGE,total)}集
+          </button>`).join('')}</div>`
+      : '';
+
+    const epsHtml = g.episodes.slice(start, start+EP_PAGE).map((ep, i) => {
+      const ei = start + i;
+      const isActive  = gi === currentSourceGroup && ei === currentEpIdx;
+      const isWatched = gi === (prog?.gi??-1) && ei < (prog?.ei??0);
+      return `<button class="ep-btn ${isActive?'active':''} ${isWatched&&!isActive?'watched':''}"
+        id="ep_${gi}_${ei}" onclick="playEpisode(${gi},${ei})">${ep.name}</button>`;
+    }).join('');
+
+    return `
+      <div class="ep-header">
+        <span class="ep-label">共 ${total} 集</span>
+      </div>
+      ${pageHtml}
+      <div class="episodes" id="epList_${gi}">${epsHtml}</div>`;
+  }
+
+  function switchEpPage(gi, pi) {
+    const groups = currentDetail?._urls || [];
+    const g = groups[gi]; if(!g) return;
+    document.querySelectorAll(`[id^="epPage_"]`).forEach((b,i)=>b.classList.toggle('active',i===pi));
+    // 重新渲染该组
+    const sec = document.getElementById('epGroup'+gi);
+    if (sec) sec.innerHTML = buildEpGroup(g, gi, pi);
+    // 重绑分页按钮
+    sec?.querySelectorAll('.ep-page-btn').forEach((b,i)=>{
+      b.classList.toggle('active', i===pi);
     });
+  }
+
+  function switchSource(gi) {
+    currentSourceGroup = gi;
+    document.querySelectorAll('.source-tab').forEach((t,i)=>t.classList.toggle('active',i===gi));
+    document.querySelectorAll('[id^="epGroup"]').forEach((el,i)=>el.classList.toggle('active',i===gi));
+    playEpisode(gi, 0);
+  }
+
+  // ─────────────────────────────────────────
+  //  播放逻辑
+  // ─────────────────────────────────────────
+  const PLAYERS = (rawUrl) => [
+    `${WORKER}/player?url=${encodeURIComponent(rawUrl)}`,
+    `https://jx.xmflv.com/?url=${encodeURIComponent(rawUrl)}`,
+    `https://jx.aidouer.net/?url=${encodeURIComponent(rawUrl)}`,
+  ];
+
+  function playEpisode(gi, ei, silent=false) {
+    const groups = currentDetail?._urls || [];
+    const ep = groups[gi]?.episodes[ei];
+    if (!ep?.url) { if(!silent) showToast('该集暂无播放地址'); return; }
+
+    cancelNext();
+
+    currentSourceGroup = gi;
+    currentEpIdx       = ei;
+    playerIdx          = 0;
+
+    // 保存进度
+    saveProgress(vodId, gi, ei);
+
+    // 高亮当前集数按钮，并滚动到可见位置
+    document.querySelectorAll(`[id^="ep_${gi}_"]`).forEach((btn,i)=>{
+      const realEi = parseInt(btn.id.split('_')[2]);
+      btn.classList.toggle('active', realEi === ei);
+    });
+    setTimeout(()=>{
+      const active = document.getElementById(`ep_${gi}_${ei}`);
+      active?.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    }, 100);
+
+    // 显示加载
+    const loading = document.getElementById('playerLoading');
+    const frame   = document.getElementById('playerFrame');
+    const tip     = document.getElementById('loadingTip');
+    if (loading) { loading.style.display='flex'; }
+    if (frame)   { frame.style.display='none'; frame.src='about:blank'; }
+    if (tip)     { tip.textContent = '正在加载视频…'; }
+
+    const players = PLAYERS(ep.url);
+
+    function tryPlayer(idx) {
+      const url = players[idx % players.length];
+      if (frame) {
+        frame.src = url;
+        frame.style.display = 'block';
+        if (loading) loading.style.display = 'none';
+        // 显示换线路tab
+        const tab = document.getElementById('switchTab');
+        if (tab) tab.style.display = 'flex';
+      }
+    }
+
+    // 绑定换线路tab
+    const tab = document.getElementById('switchTab');
+    if (tab) {
+      tab.onclick = () => switchNextPlayer(players, ep.url);
+    }
+
+    setTimeout(() => tryPlayer(0), 300);
+
+    // 播放完后自动下一集（通过iframe消息或定时，简单用时长估算）
+    scheduleNextEp(gi, ei);
+  }
+
+  function switchNextPlayer(players, rawUrl) {
+    playerIdx = (playerIdx + 1) % (players || PLAYERS(currentDetail?._urls?.[currentSourceGroup]?.episodes?.[currentEpIdx]?.url||'')).length;
+    const ep = currentDetail?._urls?.[currentSourceGroup]?.episodes?.[currentEpIdx];
+    if (!ep?.url) return;
+    const ps = PLAYERS(ep.url);
+    const frame = document.getElementById('playerFrame');
+    const loading = document.getElementById('playerLoading');
+    if (loading) loading.style.display='flex';
+    if (frame) { frame.style.display='none'; frame.src='about:blank'; }
+    showToast(`切换到线路 ${playerIdx + 1}`);
+    setTimeout(()=>{
+      if (frame) {
+        frame.src = ps[playerIdx % ps.length];
+        frame.style.display='block';
+        if (loading) loading.style.display='none';
+      }
+    }, 400);
+  }
+
+  // ─────────────────────────────────────────
+  //  自动下一集
+  // ─────────────────────────────────────────
+  function scheduleNextEp(gi, ei) {
+    // 通过postMessage监听播放完成（部分播放器支持）
+    window.onmessage = (e) => {
+      if (e.data === 'ended' || e.data?.type === 'ended') {
+        triggerNextEp(gi, ei);
+      }
+    };
+  }
+
+  function triggerNextEp(gi, ei) {
+    const groups = currentDetail?._urls || [];
+    const g = groups[gi];
+    if (!g) return;
+    const nextEi = ei + 1;
+    if (nextEi >= g.episodes.length) return; // 已是最后一集
+    const nextEp = g.episodes[nextEi];
+    if (!nextEp) return;
+
+    const bar = document.getElementById('nextEpBar');
+    const nameEl = document.getElementById('nextEpName');
+    const countdown = document.getElementById('nextCountdown');
+    if (bar) bar.classList.add('show');
+    if (nameEl) nameEl.textContent = nextEp.name;
+
+    let count = 5;
+    if (countdown) countdown.textContent = count;
+    nextTimer = setInterval(() => {
+      count--;
+      if (countdown) countdown.textContent = count;
+      if (count <= 0) {
+        clearInterval(nextTimer);
+        playEpisode(gi, nextEi);
+        if (bar) bar.classList.remove('show');
+      }
+    }, 1000);
+  }
+
+  function playNextNow() {
+    cancelNext();
+    playEpisode(currentSourceGroup, currentEpIdx + 1);
+  }
+
+  function cancelNext() {
+    clearInterval(nextTimer);
+    nextTimer = null;
+    const bar = document.getElementById('nextEpBar');
+    if (bar) bar.classList.remove('show');
+  }
+
+  // ─────────────────────────────────────────
+  //  收藏
+  // ─────────────────────────────────────────
+  function toggleFav() {
+    if (!Auth.isLoggedIn()) { openLogin(); return; }
+    const d = currentDetail;
+    const added = Auth.addFavorite({ id:d.vod_id, name:d.vod_name, pic:d.vod_pic });
+    const btn = document.getElementById('favBtn');
+    if (btn) {
+      btn.className = `fav-btn ${added?'active':''}`;
+      btn.textContent = added ? '❤️ 已收藏' : '🤍 收藏';
+    }
+    showToast(added ? '已添加到收藏' : '已取消收藏');
+  }
+
+  // ─────────────────────────────────────────
+  //  侧边栏推荐
+  // ─────────────────────────────────────────
+  async function loadSidebar(d) {
+    const el = document.getElementById('sidebarList');
+    if (!el) return;
+    try {
+      const typeKey = Object.keys(API.TYPE).find(k=>API.TYPE[k]===String(d.type_id)) || 'tv';
+      const data = await API.getList(typeKey, 1);
+      const items = (data.list||[]).filter(i=>String(i.vod_id)!==String(d.vod_id)).slice(0,12);
+      if (!items.length) { el.innerHTML='<p style="color:var(--text-muted);font-size:.82rem">暂无推荐</p>'; return; }
+      el.innerHTML = items.map(i=>`
+        <div class="sidebar-card" onclick="location.href='detail.html?id=${i.vod_id}'">
+          <div class="sidebar-thumb">
+            ${i.vod_pic?`<img src="${i.vod_pic}" loading="lazy" onerror="this.style.display='none'">`:''}
+          </div>
+          <div class="sidebar-info">
+            <div class="s-title">${i.vod_name||''}</div>
+            <div class="s-meta">${[i.vod_year,i.vod_remarks].filter(Boolean).join(' · ')}</div>
+          </div>
+        </div>`).join('');
+    } catch(e) {
+      el.innerHTML='<p style="color:var(--text-muted);font-size:.82rem">推荐加载失败</p>';
+    }
+  }
+
+  function toDetail(id) { location.href='detail.html?id='+id; }
+
+  // ─────────────────────────────────────────
+  //  初始化
+  // ─────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', loadDetail);
   </script>
 </body>
 </html>
